@@ -1,33 +1,76 @@
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown", 1
+-----------------------------------------------------------
+-- LibSFDropDown - DropDown menu for non-Blizzard addons --
+-----------------------------------------------------------
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown", 2
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 
 
 local math, pairs, rawget, type, wipe = math, pairs, rawget, type, wipe
-local CreateFrame, GetBindingKey, HybridScrollFrame_GetOffset, HybridScrollFrame_ScrollToIndex, HybridScrollFrame_Update, HybridScrollFrame_OnValueChanged, HybridScrollFrameScrollButton_OnClick, HybridScrollFrameScrollUp_OnLoad, SearchBoxTemplate_OnTextChanged = CreateFrame, GetBindingKey,HybridScrollFrame_GetOffset, HybridScrollFrame_ScrollToIndex, HybridScrollFrame_Update, HybridScrollFrame_OnValueChanged, HybridScrollFrameScrollButton_OnClick, HybridScrollFrameScrollUp_OnLoad, SearchBoxTemplate_OnTextChanged
+local CreateFrame, GetBindingKey, HybridScrollFrame_GetOffset, HybridScrollFrame_ScrollToIndex, HybridScrollFrame_Update, HybridScrollFrame_OnValueChanged, HybridScrollFrameScrollButton_OnClick, HybridScrollFrameScrollUp_OnLoad, SearchBoxTemplate_OnTextChanged, PlaySound = CreateFrame, GetBindingKey,HybridScrollFrame_GetOffset, HybridScrollFrame_ScrollToIndex, HybridScrollFrame_Update, HybridScrollFrame_OnValueChanged, HybridScrollFrameScrollButton_OnClick, HybridScrollFrameScrollUp_OnLoad, SearchBoxTemplate_OnTextChanged, PlaySound
 
 
+--[[
+List of button attributes
+====================================================================================================
+info.text = [string, function] -- The text of the button
+info.value = [anything]  --  The value that is set to button.value
+info.func = [function]  --  The function that is called when you click the button
+info.checked = [nil, true, function]  --  Check the button if true or function returns true
+info.isNotRadio = [nil, true]  --  Check the button uses radial image if false check box image if true
+info.notCheckable = [nil, true]  --  Shrink the size of the buttons and don't display a check box
+info.isTitle = [nil, true]  --  If it's a title the button is disabled and the font color is set to yellow
+info.disabled = [nil, true]  --  Disable the button and show an invisible button that still traps the mouseover event so menu doesn't time out
+info.hasArrow = [nil, true]  --  Show the expand arrow for multilevel menus
+info.keepShownOnClick = [nil, true]  --  Don't hide the dropdownlist after a button is clicked
+info.arg1 = [anything] -- This is the first argument used by info.func
+info.arg2 = [anything] -- This is the second argument used by info.func
+info.icon = [texture] -- An icon for the button
+info.iconInfo = [table] -- A table that looks like {
+	tCoordLeft = [0..1], -- left for SetTexCoord func
+	tCoordRight = [0..1], -- right for SetTexCoord func
+	tCoordTop = [0..1], -- top for SetTexCoord func
+	tCoordBottom = [0..1], -- bottom for SetTexCoord func
+	tSizeX = [number], -- texture width
+	tSizeY = [number], -- texture height
+}
+info.indent = [number] -- Number of pixels to pad the button on the left side
+info.remove = [function] -- The function that is called when you click the remove button
+info.order = [function] -- The function that is called when you click the up or down arrow button
+info.list = [table] -- The table of info buttons, if there are more than 20 buttons, a scroll frame is added
+]]
 local dropDownOptions = {
-	"keepShownOnClick",
-	"hasArrow",
+	"text",
 	"value",
-	"owner",
+	"func",
+	"checked",
+	"isNotRadio",
+	"notCheckable",
+	"hasArrow",
+	"keepShownOnClick",
 	"arg1",
 	"arg2",
-	"notCheckable",
-	"isNotRadio",
-	"text",
-	"checked",
-	"func",
+	"icon",
+	"iconInfo",
 	"remove",
 	"order",
 	"indent",
-	"icon",
-	"iconInfo",
 }
 local DropDownMenuButtonHeight = 16
 local DropDownMenuSearchHeight = DropDownMenuButtonHeight * 20 + 26
 local DROPDOWNBUTTON = nil
+local defaultStyle = "backdrop"
+local menuStyle = "menuBackdrop"
+local menuStyles = {}
+
+
+local function CreateMenuStyle(menu, name, frameFunc)
+	local f = frameFunc()
+	f:SetParent(menu)
+	f:SetFrameLevel(f:GetFrameLevel())
+	f:SetAllPoints()
+	menu[name] = f
+end
 
 
 local function OnHide(self)
@@ -44,6 +87,9 @@ local function CreateDropDownMenuList(parent)
 	menu.backdrop = CreateFrame("FRAME", nil, menu, "DialogBorderDarkTemplate")
 	menu.menuBackdrop = CreateFrame("FRAME", nil, menu, "TooltipBackdropTemplate")
 	menu.menuBackdrop:SetAllPoints()
+	for name, frameFunc in pairs(menuStyles) do
+		CreateMenuStyle(menu, name, frameFunc)
+	end
 	menu:SetScript("OnHide", OnHide)
 	return menu
 end
@@ -407,9 +453,12 @@ function DropDownMenuSearchMixin:refresh()
 			if btn.icon then
 				btn.Icon:SetTexture(btn.icon)
 				if btn.iconInfo then
+					local iInfo = btn.iconInfo
 					btn.Icon:SetSize(btn.iconInfo.tSizeX or DropDownMenuButtonHeight, btn.iconInfo.tSizeY or DropDownMenuButtonHeight)
+					btn.Icon:SetTexCoord(iInfo.tCoordLeft or 0, iInfo.tCoordRight or 1, iInfo.tCoordTop or 0, iInfo.tCoordBottom or 1)
 				else
 					btn.Icon:SetSize(DropDownMenuButtonHeight, DropDownMenuButtonHeight)
+					btn.Icon:SetTexCoord(0, 1, 0, 1)
 				end
 				btn.Icon:Show()
 			else
@@ -640,6 +689,14 @@ menu1:SetScript("OnHide", function(self)
 end)
 
 
+local function MenuReset(menu)
+	menu.width = 0
+	menu.height = 15
+	menu.numButtons = 0
+	wipe(menu.searchFrames)
+end
+
+
 local DropDownButtonMixin = {}
 
 
@@ -649,12 +706,18 @@ function DropDownButtonMixin:ddSetSelectedValue(value, level, anchorFrame)
 end
 
 
-function DropDownButtonMixin:ddSetSelectedText(text, icon, width, height)
+function DropDownButtonMixin:ddSetSelectedText(text, icon, iconInfo)
 	self.Text:SetText(text)
 	if icon then
 		self.Icon:Show()
 		self.Icon:SetTexture(icon)
-		self.Icon:SetSize(width or DropDownMenuButtonHeight, height or DropDownMenuButtonHeight)
+		if iconInfo then
+			self.Icon:SetSize(iconInfo.tSizeX or DropDownMenuButtonHeight, iconInfo.tSizeY or DropDownMenuButtonHeight)
+			self.Icon:SetTexCoord(iconInfo.tCoordLeft or 0, iconInfo.tCoordRight or 1, iconInfo.tCoordTop or 0, iconInfo.tCoordBottom or 1)
+		else
+			self.Icon:SetSize(DropDownMenuButtonHeight, DropDownMenuButtonHeight)
+			self.Icon:SetTexCoord(0, 1, 0, 1)
+		end
 		self.Text:SetPoint("LEFT", self.Left, "RIGHT", self.Icon:GetWidth() - 2, 2)
 		self.Icon:SetPoint("RIGHT", self.Text, "RIGHT", -math.min(self.Text:GetStringWidth(), self.Text:GetWidth()) - 1, -1)
 	else
@@ -669,6 +732,26 @@ function DropDownButtonMixin:ddSetInitFunc(initFunction)
 end
 
 
+function DropDownButtonMixin:ddInitialize(level, value, initFunction)
+	if type(level) == "function" then
+		initFunction = level
+		level = nil
+		value = nil
+	elseif type(value) == "function" then
+		initFunction = value
+		value = nil
+	end
+	level = level or 1
+	menu = dropDownMenusList[level]
+	menu.anchorFrame = self
+	MenuReset(dropDownMenusList[level])
+	self:ddSetInitFunc(initFunction)
+	initFunction(self, level, value)
+	menu:Show()
+	menu:Hide()
+end
+
+
 function DropDownButtonMixin:ddSetDisplayMode(displayMode)
 	self.displayMode = displayMode
 end
@@ -679,8 +762,12 @@ function DropDownButtonMixin:ddSetAutoSetText(enabled)
 end
 
 
-function DropDownButtonMixin:ddHideWhenButtonHidden(enabled)
-	self:SetScript("OnHide", enabled and self.onHide or nil)
+function DropDownButtonMixin:ddHideWhenButtonHidden(frame)
+	if frame then
+		frame:HookScript("OnHide", function() self:onHide() end)
+	else
+		self:HookScript("OnHide", self.onHide)
+	end
 end
 
 
@@ -699,10 +786,7 @@ function DropDownButtonMixin:dropDownToggle(level, value, anchorFrame, xOffset, 
 		yOffset = 5
 	end
 
-	menu.width = 0
-	menu.height = 15
-	menu.numButtons = 0
-	wipe(menu.searchFrames)
+	MenuReset(menu)
 	self:initialize(level, value)
 
 	menu.width = menu.width + 30
@@ -722,13 +806,20 @@ function DropDownButtonMixin:dropDownToggle(level, value, anchorFrame, xOffset, 
 		end
 	end
 
-	if DROPDOWNBUTTON.displayMode == "menu" then
-		menu.backdrop:Hide()
-		menu.menuBackdrop:Show()
-	else
-		menu.backdrop:Show()
-		menu.menuBackdrop:Hide()
+	menu.backdrop:Hide()
+	menu.menuBackdrop:Hide()
+	for name in pairs(menuStyles) do
+		menu[name]:Hide()
 	end
+	local style
+	if DROPDOWNBUTTON.displayMode == "menu" then
+		style = menuStyle
+	elseif menu[DROPDOWNBUTTON.displayMode] then
+		style = DROPDOWNBUTTON.displayMode
+	else
+		style = defaultStyle
+	end
+	menu[style]:Show()
 
 	menu:Show()
 end
@@ -748,17 +839,16 @@ function DropDownButtonMixin:ddRefresh(level, anchorFrame)
 			end
 
 			if not button.notCheckable then
-				if type(button.checked) == "function" then button._checked = button:checked() end
+				if type(button.checked) == "function" then
+					button._checked = button:checked()
+				elseif button.checked == nil then
+					button._checked = button.value == self.selectedValue
+				end
 				button.Check:SetShown(button._checked)
 				button.UnCheck:SetShown(not button._checked)
 
 				if self.dropDownSetText and button._checked and menu.anchorFrame == anchorFrame then
-					local width, height
-					if button.iconInfo then
-						width = button.iconInfo.tSizeX
-						height = button.iconInfo.tSizeY
-					end
-					self:ddSetSelectedText(button._text, button.icon, width, height)
+					self:ddSetSelectedText(button._text, button.icon, button.iconInfo)
 				end
 			end
 		else
@@ -774,15 +864,15 @@ function DropDownButtonMixin:ddRefresh(level, anchorFrame)
 				for j = 1, #searchFrame.buttons do
 					local button = searchFrame.buttons[j]
 					local checked = button.checked
-					if type(checked) == "function" then checked = checked(button) end
+					if type(checked) == "function" then
+						checked = checked(button)
+					elseif checked == nil then
+						checked = button.value == self.selectedValue
+					end
 					if checked then
-						local text, width, height = button.text
+						local text = button.text
 						if type(text) == "function" then text = text() end
-						if button.iconInfo then
-							width = button.iconInfo.tSizeX
-							height = button.iconInfo.tSizeY
-						end
-						self:ddSetSelectedText(text, button.icon, width, height)
+						self:ddSetSelectedText(text, button.icon, button.iconInfo)
 					end
 				end
 			end
@@ -882,9 +972,12 @@ function DropDownButtonMixin:ddAddButton(info, level)
 	if info.icon then
 		button.Icon:SetTexture(info.icon)
 		if info.iconInfo then
-			button.Icon:SetSize(info.iconInfo.tSizeX or DropDownMenuButtonHeight, info.iconInfo.tSizeY or DropDownMenuButtonHeight)
+			local iInfo = info.iconInfo
+			button.Icon:SetSize(iInfo.tSizeX or DropDownMenuButtonHeight, iInfo.tSizeY or DropDownMenuButtonHeight)
+			button.Icon:SetTexCoord(iInfo.tCoordLeft or 0, iInfo.tCoordRight or 1, iInfo.tCoordTop or 0, iInfo.tCoordBottom or 1)
 		else
 			button.Icon:SetSize(DropDownMenuButtonHeight, DropDownMenuButtonHeight)
+			button.Icon:SetTexCoord(0, 1, 0, 1)
 		end
 
 		if info.iconOnly then
@@ -930,7 +1023,11 @@ function DropDownButtonMixin:ddAddButton(info, level)
 		end
 
 		button._checked = info.checked
-		if type(button._checked) == "function" then button._checked = button:_checked() end
+		if type(button._checked) == "function" then
+			button._checked = button:_checked()
+		elseif info.checked == nil then
+			button._checked = button.value == self.selectedValue
+		end
 
 		button.Check:SetShown(button._checked)
 		button.UnCheck:SetShown(not button._checked)
@@ -977,7 +1074,62 @@ function DropDownButtonMixin:getDropDownSearchFrame()
 end
 
 
-function lib:SetMixin(btn)
+local libMeta = {
+	__metatable = "access denied",
+	__index = {}
+}
+setmetatable(lib, libMeta)
+local libMethods = libMeta.__index
+
+
+function libMethods:IterateMenus()
+	return ipairs(dropDownMenusList)
+end
+
+
+function libMethods:iterateMenuButtons(level)
+	local menu = rawget(dropDownMenusList, level or 1)
+	if menu then
+		local buttons = {}
+		for i = 1, #menu.buttonsList do
+			buttons[i] = menu.buttonsList[i]
+		end
+		for i = 1, #menu.searchFrames do
+			local searchFrame = menu.searchFrames[i]
+			for j = 1, #searchFrame.buttons do
+				buttons[#buttons + 1] = searchFrame.buttons[j]
+			end
+		end
+		return ipairs(buttons)
+	end
+end
+
+
+function libMethods:CreateMenuStyle(name, frameFunc)
+	if type(frameFunc) == "function" then
+		for i = 1, #dropDownMenusList do
+			CreateMenuStyle(dropDownMenusList[i], name, frameFunc)
+		end
+		menuStyles[name] = frameFunc
+	end
+end
+
+
+function libMethods:SetDefaultStyle(name)
+	if menuStyles[name] then
+		defaultStyle = name
+	end
+end
+
+
+function libMethods:SetMenuStyle(name)
+	if menuStyles[name] then
+		menuStyle = name
+	end
+end
+
+
+function libMethods:SetMixin(btn)
 	for k, v in pairs(DropDownButtonMixin) do
 		btn[k] = v
 	end
@@ -1012,13 +1164,15 @@ do
 	end
 
 
-	function lib:CreateButton(parent, width)
+	function libMethods:CreateButtonOriginal(parent, width)
+		self.CreateButtonOriginal = nil
+
 		local btn = CreateFrame("FRAME", nil, parent)
 		btn:SetSize(width or 135, 24)
 		self:SetMixin(btn)
 		btn.SFNoGlobalMouseEvent = nil
 		btn:ddSetAutoSetText(true)
-		btn:ddHideWhenButtonHidden(true)
+		btn:ddHideWhenButtonHidden()
 		btn.SetEnabled = SetEnabled
 		btn.Enable = Enable
 		btn.Disable = Disable
@@ -1064,6 +1218,7 @@ do
 
 		return btn
 	end
+	libMethods.CreateButton = libMethods.CreateButtonOriginal
 end
 
 
@@ -1074,14 +1229,16 @@ do
 	end
 
 
-	function lib:CreateStreatchButton(parent, width, height, wrap)
+	function libMethods:CreateStreatchButtonOriginal(parent, width, height, wrap)
+		self.CreateStreatchButtonOriginal = nil
+
 		local btn = CreateFrame("BUTTON", nil, parent, "UIMenuButtonStretchTemplate")
 		if width then btn:SetWidth(width) end
 		if height then btn:SetHeight(height) end
 		if wrap == nil then wrap = false end
 		self:SetMixin(btn)
 		btn:ddSetDisplayMode("menu")
-		btn:ddHideWhenButtonHidden(true)
+		btn:ddHideWhenButtonHidden()
 		btn:SetScript("OnClick", OnClick)
 
 		btn.Icon = btn:CreateTexture(nil, "ARTWORK")
@@ -1100,4 +1257,5 @@ do
 
 		return btn
 	end
+	libMethods.CreateStreatchButton = libMethods.CreateStreatchButtonOriginal
 end
