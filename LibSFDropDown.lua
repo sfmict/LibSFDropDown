@@ -1,7 +1,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown", 5
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.0", 1
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -121,8 +121,8 @@ local menuStyles = v.menuStyles
 
 
 if WoWClassic then
-	menuStyles.backdrop = function()
-		local f = CreateFrame("FRAME")
+	menuStyles.backdrop = function(parent)
+		local f = CreateFrame("FRAME", nil, parent)
 		f:SetBackdrop({
 			bgFile = "Interface/DialogFrame/UI-DialogBox-Background-Dark",
 			edgeFile = "Interface/DialogFrame/UI-DialogBox-Border",
@@ -134,8 +134,8 @@ if WoWClassic then
 		return f
 	end
 
-	menuStyles.menuBackdrop = function()
-		local f = CreateFrame("FRAME")
+	menuStyles.menuBackdrop = function(parent)
+		local f = CreateFrame("FRAME", nil, parent)
 		f:SetBackdrop({
 			bgFile = "Interface/Tooltips/UI-Tooltip-Background",
 			edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
@@ -149,37 +149,28 @@ if WoWClassic then
 		return f
 	end
 else
-	menuStyles.backdrop = function()
-		return CreateFrame("FRAME", nil, menu, "DialogBorderDarkTemplate")
+	menuStyles.backdrop = function(parent)
+		return CreateFrame("FRAME", nil, parent, "DialogBorderDarkTemplate")
 	end
 
-	menuStyles.menuBackdrop = function()
-		return CreateFrame("FRAME", nil, menu, "TooltipBackdropTemplate")
+	menuStyles.menuBackdrop = function(parent)
+		return CreateFrame("FRAME", nil, parent, "TooltipBackdropTemplate")
 	end
 end
 
 
 local function CreateMenuStyle(menu, name, frameFunc)
-	local f = frameFunc()
-	f:SetParent(menu)
+	local f = frameFunc(menu)
 	f:SetFrameLevel(menu:GetFrameLevel())
-	f:SetAllPoints()
+	if not f:GetPoint() then
+		f:SetAllPoints()
+	end
 	menu.styles[name] = f
 end
 
 
 local function OnHide(self)
 	self:Hide()
-end
-
-
-local function DropDownMenuList_OnEnter()
-	if StopCounting then StopCounting() end
-end
-
-
-local function DropDownMenuList_OnLeave()
-	if StartCounting then StartCounting() end
 end
 
 
@@ -194,8 +185,12 @@ local function CreateDropDownMenuList(parent)
 		CreateMenuStyle(menu, name, frameFunc)
 	end
 	menu:SetScript("OnHide", OnHide)
-	menu:SetScript("OnEnter", DropDownMenuList_OnEnter)
-	menu:SetScript("OnLeave", DropDownMenuList_OnLeave)
+
+	if StartCounting then
+		menu:SetScript("OnEnter", StopCounting)
+		menu:SetScript("OnLeave", StartCounting)
+	end
+
 	return menu
 end
 
@@ -219,7 +214,7 @@ local function DropDownMenuButton_OnClick(self)
 	end
 
 	if not self.keepShownOnClick then
-		v.DROPDOWNBUTTON:closeDropDownMenus()
+		v.DROPDOWNBUTTON:ddCloseMenus()
 	end
 end
 
@@ -230,9 +225,9 @@ local function DropDownMenuButton_OnEnter(self)
 
 	local level = self:GetParent().id + 1
 	if self.hasArrow and self:IsEnabled() then
-		v.DROPDOWNBUTTON:dropDownToggle(level, self.value, self)
+		v.DROPDOWNBUTTON:ddToggle(level, self.value, self)
 	else
-		v.DROPDOWNBUTTON:closeDropDownMenus(level)
+		v.DROPDOWNBUTTON:ddCloseMenus(level)
 	end
 
 	if self.remove then
@@ -255,8 +250,6 @@ local function DropDownMenuButton_OnEnter(self)
 	if self.OnEnter then
 		self:OnEnter(self.arg1, self.arg2)
 	end
-
-	DropDownMenuList_OnEnter()
 end
 
 
@@ -274,8 +267,6 @@ local function DropDownMenuButton_OnLeave(self)
 	if self.OnLeave then
 		self:OnLeave(self.arg1, self.arg2)
 	end
-
-	DropDownMenuList_OnLeave()
 end
 
 
@@ -326,7 +317,7 @@ end
 local function RemoveButton_OnClick(self)
 	local parent = self:GetParent()
 	parent:remove(parent.arg1, parent.arg2)
-	v.DROPDOWNBUTTON:closeDropDownMenus()
+	v.DROPDOWNBUTTON:ddCloseMenus()
 end
 
 
@@ -359,6 +350,11 @@ local function CreateDropDownMenuButton(parent)
 	btn:SetScript("OnDisable", DropDownMenuButton_OnDisable)
 	btn:SetScript("OnEnable", DropDownMenuButton_OnEnable)
 	btn:SetScript("OnHide", OnHide)
+
+	if StartCounting then
+		btn:HookScript("OnEnter", StopCounting)
+		btn:HookScript("OnLeave", StartCounting)
+	end
 
 	btn.highlight = btn:CreateTexture(nil, "BACKGROUND")
 	btn.highlight:SetTexture("Interface/QuestFrame/UI-QuestTitleHighlight")
@@ -448,7 +444,7 @@ end
 -- DROPDOWN COLOR SWATCH
 ---------------------------------------------------
 local function ColorSwatch_OnClick(self)
-	v.DROPDOWNBUTTON:closeDropDownMenus()
+	v.DROPDOWNBUTTON:ddCloseMenus()
 	OpenColorPicker(self:GetParent())
 end
 
@@ -853,17 +849,11 @@ local function CreateDropDownMenuSearch(i)
 	f.searchBox:SetPoint("TOPLEFT", 5, -3)
 	f.searchBox:SetPoint("TOPRIGHT", 1, 0)
 	f.searchBox:SetScript("OnTextChanged", DropDownMenuSearch_OnTextChanged)
-	f.searchBox:HookScript("OnEnter", DropDownMenuList_OnEnter)
-	f.searchBox:HookScript("OnLeave", DropDownMenuList_OnLeave)
-	f.searchBox.clearButton:HookScript("OnEnter", DropDownMenuList_OnEnter)
-	f.searchBox.clearButton:HookScript("OnLeave", DropDownMenuList_OnLeave)
 
 	f.listScroll = CreateFrame("ScrollFrame", MAJOR_VERSION.."ScrollFrame"..i, f, "HybridScrollFrameTemplate")
 	f.listScroll:SetSize(30, DropDownMenuSearchHeight - 26)
 	f.listScroll:SetPoint("TOPLEFT", f.searchBox, "BOTTOMLEFT", -5, -3)
 	f.listScroll:SetPoint("BOTTOMRIGHT", -25, 3)
-	f.listScroll:HookScript("OnEnter", DropDownMenuList_OnEnter)
-	f.listScroll:HookScript("OnLeave", DropDownMenuList_OnLeave)
 
 	f.listScroll.scrollBar = CreateFrame("SLIDER", nil, f.listScroll)
 	local scrollBar = f.listScroll.scrollBar
@@ -872,8 +862,6 @@ local function CreateDropDownMenuSearch(i)
 	scrollBar:SetPoint("TOPLEFT", f.listScroll, "TOPRIGHT", 5, -18)
 	scrollBar:SetPoint("BOTTOMLEFT", f.listScroll, "BOTTOMRIGHT", 5, 15)
 	scrollBar:SetScript("OnValueChanged", HybridScrollFrame_OnValueChanged)
-	scrollBar:HookScript("OnEnter", DropDownMenuList_OnEnter)
-	scrollBar:HookScript("OnLeave", DropDownMenuList_OnLeave)
 
 	scrollBar:SetThumbTexture("Interface/Buttons/UI-ScrollBar-Knob")
 	scrollBar.thumbTexture = scrollBar:GetThumbTexture()
@@ -894,8 +882,6 @@ local function CreateDropDownMenuSearch(i)
 	scrollBar.UpButton:SetDisabledAtlas("UI-ScrollBar-ScrollUpButton-Disabled")
 	scrollBar.UpButton:SetHighlightAtlas("UI-ScrollBar-ScrollUpButton-Highlight")
 	scrollBar.UpButton:SetScript("OnClick", HybridScrollFrameScrollButton_OnClick)
-	scrollBar.UpButton:HookScript("OnEnter", DropDownMenuList_OnEnter)
-	scrollBar.UpButton:HookScript("OnLeave", DropDownMenuList_OnLeave)
 	HybridScrollFrameScrollUp_OnLoad(scrollBar.UpButton)
 
 	scrollBar.DownButton = CreateFrame("BUTTON", nil, scrollBar)
@@ -906,9 +892,26 @@ local function CreateDropDownMenuSearch(i)
 	scrollBar.DownButton:SetDisabledAtlas("UI-ScrollBar-ScrollDownButton-Disabled")
 	scrollBar.DownButton:SetHighlightAtlas("UI-ScrollBar-ScrollDownButton-Highlight")
 	scrollBar.DownButton:SetScript("OnClick", HybridScrollFrameScrollButton_OnClick)
-	scrollBar.DownButton:HookScript("OnEnter", DropDownMenuList_OnEnter)
-	scrollBar.DownButton:HookScript("OnLeave", DropDownMenuList_OnLeave)
 	HybridScrollFrameScrollDown_OnLoad(scrollBar.DownButton)
+
+	if StartCounting then
+		f.searchBox:HookScript("OnEnter", StopCounting)
+		f.searchBox:HookScript("OnLeave", StartCounting)
+		f.searchBox.clearButton:HookScript("OnEnter", StopCounting)
+		f.searchBox.clearButton:HookScript("OnLeave", StartCounting)
+
+		f.listScroll:HookScript("OnEnter", StopCounting)
+		f.listScroll:HookScript("OnLeave", StartCounting)
+
+		scrollBar:HookScript("OnEnter", StopCounting)
+		scrollBar:HookScript("OnLeave", StartCounting)
+
+		scrollBar.UpButton:HookScript("OnEnter", StopCounting)
+		scrollBar.UpButton:HookScript("OnLeave", StartCounting)
+
+		scrollBar.DownButton:HookScript("OnEnter", StopCounting)
+		scrollBar.DownButton:HookScript("OnLeave", StartCounting)
+	end
 
 	f.listScroll.update = DropDownMenuSearch_Update
 	DropDownScrollFrame_CreateButtons(f.listScroll)
@@ -958,75 +961,77 @@ local dropDownMenusList = setmetatable(v.dropDownMenusList, {
 })
 
 
-if oldminor < 1 then
-	local menu1 = dropDownMenusList[1]
-	-- CLOSE ON ESC
-	menu1:SetScript("OnKeyDown", function(self, key)
-		if key == GetBindingKey("TOGGLEGAMEMENU") then
+local menu1 = dropDownMenusList[1]
+-- CLOSE ON ESC
+menu1:SetScript("OnKeyDown", function(self, key)
+	if key == GetBindingKey("TOGGLEGAMEMENU") then
+		self:Hide()
+		self:SetPropagateKeyboardInput(false)
+	else
+		self:SetPropagateKeyboardInput(true)
+	end
+end)
+
+
+if WOWRetail then
+	-- CLOSE WHEN CLICK ON A FREE PLACE
+	local function ContainsMouse()
+		for i = 1, #dropDownMenusList do
+			local menu = dropDownMenusList[i]
+			if menu:IsShown() and menu:IsMouseOver() then
+				return true
+			end
+		end
+		return false
+	end
+
+	local GetMouseFocus = GetMouseFocus
+	local function ContainsFocus()
+		local focus = GetMouseFocus()
+		return focus and focus.LibSFDropDownNoGMEvent
+	end
+
+	menu1:SetScript("OnEvent", function(self, event, button)
+		if (button == "LeftButton" or button == "RightButton")
+		and not (ContainsFocus() or ContainsMouse()) then
 			self:Hide()
-			self:SetPropagateKeyboardInput(false)
-		else
-			self:SetPropagateKeyboardInput(true)
 		end
 	end)
-	if WOWRetail then
-		-- CLOSE WHEN CLICK ON A FREE PLACE
-		local function ContainsMouse()
-			for i = 1, #dropDownMenusList do
-				local menu = dropDownMenusList[i]
-				if menu:IsShown() and menu:IsMouseOver() then
-					return true
-				end
-			end
-			return false
-		end
-
-		local GetMouseFocus = GetMouseFocus
-		local function ContainsFocus()
-			local focus = GetMouseFocus()
-			return focus and focus.SFNoGlobalMouseEvent
-		end
-
-		menu1:SetScript("OnEvent", function(self, event, button)
-			if (button == "LeftButton" or button == "RightButton")
-			and not (ContainsFocus() or ContainsMouse()) then
-				self:Hide()
-			end
-		end)
-		menu1:SetScript("OnShow", function(self)
-			self:Raise()
-			self:RegisterEvent("GLOBAL_MOUSE_DOWN")
-		end)
-		menu1:SetScript("OnHide", function(self)
-			self:Hide()
-			self:UnregisterEvent("GLOBAL_MOUSE_DOWN")
-		end)
-	else
-		-- CLOSE BY TIMER
-		StartCounting = function()
-			local menu = dropDownMenusList[1]
-			menu.showTimer = UIDROPDOWNMENU_SHOW_TIME
-			menu.isCounting = true
-		end
-
-		StopCounting = function()
-			dropDownMenusList[1].isCounting = nil
-		end
-
-		menu1:SetScript("OnUpdate", function(self, elapsed)
-			if not self.isCounting then return end
-			if self.showTimer < 0 then
-				self:Hide()
-				self.isCounting = nil
-			else
-				self.showTimer = self.showTimer - elapsed
-			end
-		end)
-		menu1:SetScript("OnShow", function(self)
-			self:Raise()
-			StartCounting()
-		end)
+	menu1:SetScript("OnShow", function(self)
+		self:Raise()
+		self:RegisterEvent("GLOBAL_MOUSE_DOWN")
+	end)
+	menu1:SetScript("OnHide", function(self)
+		self:Hide()
+		self:UnregisterEvent("GLOBAL_MOUSE_DOWN")
+	end)
+else
+	-- CLOSE BY TIMER
+	StartCounting = function()
+		local menu = dropDownMenusList[1]
+		menu.showTimer = UIDROPDOWNMENU_SHOW_TIME
+		menu.isCounting = true
 	end
+
+	StopCounting = function()
+		dropDownMenusList[1].isCounting = nil
+	end
+
+	menu1:SetScript("OnUpdate", function(self, elapsed)
+		if not self.isCounting then return end
+		if self.showTimer < 0 then
+			self:Hide()
+			self.isCounting = nil
+		else
+			self.showTimer = self.showTimer - elapsed
+		end
+	end)
+	menu1:SetScript("OnShow", function(self)
+		self:Raise()
+		StartCounting()
+	end)
+	menu1:SetScript("OnEnter", StopCounting)
+	menu1:SetScript("OnLeave", StartCounting)
 end
 
 
@@ -1113,16 +1118,21 @@ function DropDownButtonMixin:ddSetAutoSetText(enabled)
 end
 
 
+function DropDownButtonMixin:ddSetNoGlobalMouseEvent(enabled, frame)
+	(frame or self).LibSFDropDownNoGMEvent = enabled and true or nil
+end
+
+
 function DropDownButtonMixin:ddHideWhenButtonHidden(frame)
 	if frame then
-		frame:HookScript("OnHide", function() self:onHide() end)
+		frame:HookScript("OnHide", function() self:ddOnHide() end)
 	else
-		self:HookScript("OnHide", self.onHide)
+		self:HookScript("OnHide", self.ddOnHide)
 	end
 end
 
 
-function DropDownButtonMixin:dropDownToggle(level, value, anchorFrame, xOffset, yOffset)
+function DropDownButtonMixin:ddToggle(level, value, anchorFrame, xOffset, yOffset)
 	if not level then level = 1 end
 	local menu = dropDownMenusList[level]
 
@@ -1188,7 +1198,7 @@ function DropDownButtonMixin:ddRefresh(level, anchorFrame)
 			if not btn.notCheckable then
 				if type(btn.checked) == "function" then
 					btn._checked = btn:checked()
-				elseif self.dropDownSetText and btn._checked == nil and not btn.isNotRadio then
+				elseif self.dropDownSetText and btn.checked == nil and not btn.isNotRadio then
 					btn._checked = btn.value == self.selectedValue
 				end
 				btn.Check:SetShown(btn._checked)
@@ -1232,15 +1242,15 @@ function DropDownButtonMixin:ddRefresh(level, anchorFrame)
 end
 
 
-function DropDownButtonMixin:closeDropDownMenus(level)
+function DropDownButtonMixin:ddCloseMenus(level)
 	local menu = rawget(dropDownMenusList, level or 1)
 	if menu then menu:Hide() end
 end
 
 
-function DropDownButtonMixin:onHide()
+function DropDownButtonMixin:ddOnHide()
 	if self == v.DROPDOWNBUTTON then
-		self:closeDropDownMenus()
+		self:ddCloseMenus()
 	end
 end
 
@@ -1524,7 +1534,6 @@ function libMethods:SetMixin(btn)
 	for k, v in pairs(DropDownButtonMixin) do
 		btn[k] = v
 	end
-	btn.SFNoGlobalMouseEvent = true
 	return btn
 end
 
@@ -1551,7 +1560,7 @@ do
 	local function Button_OnClick(self)
 		PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
 		local parent = self:GetParent()
-		parent:dropDownToggle(1, nil, parent)
+		parent:ddToggle(1, nil, parent)
 	end
 
 
@@ -1561,7 +1570,6 @@ do
 		local btn = CreateFrame("FRAME", nil, parent)
 		btn:SetSize(width or 135, 24)
 		self:SetMixin(btn)
-		btn.SFNoGlobalMouseEvent = nil
 		btn:ddSetAutoSetText(true)
 		btn:ddHideWhenButtonHidden()
 		btn.SetEnabled = SetEnabled
@@ -1604,8 +1612,8 @@ do
 		btn.Button:SetDisabledTexture("Interface/ChatFrame/UI-ChatIcon-ScrollDown-Disabled")
 		btn.Button:SetHighlightTexture("Interface/Buttons/UI-Common-MouseHilight")
 		btn.Button:GetHighlightTexture():SetBlendMode("ADD")
-		btn.Button.SFNoGlobalMouseEvent = true
 		btn.Button:SetScript("OnClick", Button_OnClick)
+		btn:ddSetNoGlobalMouseEvent(true, btn.Button)
 
 		return btn
 	end
@@ -1616,7 +1624,7 @@ end
 do
 	local function OnClick(self)
 		PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
-		self:dropDownToggle(1, nil, self, self:GetWidth() - 18, self:GetHeight() / 2 + 6)
+		self:ddToggle(1, nil, self, self:GetWidth() - 18, self:GetHeight() / 2 + 6)
 	end
 
 
@@ -1630,6 +1638,7 @@ do
 		self:SetMixin(btn)
 		btn:ddSetDisplayMode("menu")
 		btn:ddHideWhenButtonHidden()
+		btn:ddSetNoGlobalMouseEvent(true)
 		btn:SetScript("OnClick", OnClick)
 
 		btn.Icon = btn:CreateTexture(nil, "ARTWORK")
