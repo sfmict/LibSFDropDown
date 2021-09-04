@@ -1,7 +1,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.0", 1
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.1", 1
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -39,7 +39,7 @@ end
 --[[
 List of button attributes
 ====================================================================================================
-info.text = [string, function(self)]  --  The text of the button or function returns the text
+info.text = [string, function(self)]  --  The text of the button or function that returns the text
 info.value = [anything]  --  The value that is set to button.value
 info.func = [function(self, arg1, arg2, checked)]  --  The function that is called when you click the button
 info.checked = [nil, true, function(self)]  --  Check the button if true or function returns true
@@ -77,7 +77,7 @@ info.fontObject = [font]  --  The font object replacement for Normal and Highlig
 info.OnEnter = [function(self, arg1, arg2)] -- Handler OnEnter
 info.OnLeave = [function(self, arg1, arg2)] -- Handler OnLeave
 info.tooltipWhileDisabled = [nil, true] -- Show the tooltip, even when the button is disabled
-info.OnTooltipShow = [function(self, TooltipFrame, arg1, arg2)] -- Handler tooltip show
+info.OnTooltipShow = [function(self, tooltipFrame, arg1, arg2)] -- Handler tooltip show
 info.list = [table]  --  The table of info buttons, if there are more than 20 buttons, a scroll frame is added. Available attributes in table "dropDonwOptions".
 ]]
 local dropDownOptions = {
@@ -1468,6 +1468,15 @@ function DropDownButtonMixin:ddAddSeparator(level)
 end
 
 
+function DropDownButtonMixin:ddAddSpace(level)
+	local info = {
+		disabled = true,
+		notCheckable = true,
+	}
+	self:ddAddButton(info, level)
+end
+
+
 ---------------------------------------------------
 -- LIBRARY
 ---------------------------------------------------
@@ -1484,20 +1493,27 @@ function libMethods:IterateMenus()
 end
 
 
-function libMethods:iterateMenuButtons(level)
+function libMethods:IterateMenuButtons(level)
 	local menu = rawget(dropDownMenusList, level or 1)
 	if menu then
-		local buttons = {}
-		for i = 1, #menu.buttonsList do
-			buttons[i] = menu.buttonsList[i]
-		end
-		for i = 1, #menu.searchFrames do
-			local searchFrame = menu.searchFrames[i]
-			for j = 1, #searchFrame.buttons do
-				buttons[#buttons + 1] = searchFrame.buttons[j]
-			end
-		end
-		return ipairs(buttons)
+		return ipairs(menu.buttonsList)
+	else
+		error("The menu with a level "..level.." dosn't exist.")
+	end
+end
+
+
+function libMethods:IterateSearchFrames()
+	return ipairs(dropDownSearchFrames)
+end
+
+
+function libMethods:IterateSearchFrameButtons(num)
+	local searchFrame = dropDownSearchFrames[num]
+	if searchFrame then
+		return ipairs(searchFrame.listScroll.buttons)
+	else
+		error("SearchFrame number "..num.." dosn't exist.")
 	end
 end
 
@@ -1506,7 +1522,7 @@ function libMethods:CreateMenuStyle(name, frameFunc, silent)
 	if type(name) == "string" and type(frameFunc) == "function" then
 		if menuStyles[name] then
 			if silent then return end
-			error("The style with the name \""..name.."\" already exists.")
+			error("The style named \""..name.."\" already exists.")
 		end
 		for i = 1, #dropDownMenusList do
 			CreateMenuStyle(dropDownMenusList[i], name, frameFunc)
@@ -1519,6 +1535,8 @@ end
 function libMethods:SetDefaultStyle(name)
 	if menuStyles[name] then
 		v.defaultStyle = name
+	else
+		error("The style named \""..name.."\" dosn't exist.")
 	end
 end
 
@@ -1526,6 +1544,8 @@ end
 function libMethods:SetMenuStyle(name)
 	if menuStyles[name] then
 		v.menuStyle = name
+	else
+		error("The style named \""..name.."\" dosn't exist.")
 	end
 end
 
@@ -1628,8 +1648,8 @@ do
 	end
 
 
-	function libMethods:CreateStreatchButtonOriginal(parent, width, height, wrap)
-		self.CreateStreatchButtonOriginal = nil
+	function libMethods:CreateStretchButtonOriginal(parent, width, height, wrap)
+		self.CreateStretchButtonOriginal = nil
 
 		local btn = CreateFrame("BUTTON", nil, parent, "UIMenuButtonStretchTemplate")
 		if width then btn:SetWidth(width) end
@@ -1657,5 +1677,5 @@ do
 
 		return btn
 	end
-	libMethods.CreateStreatchButton = libMethods.CreateStreatchButtonOriginal
+	libMethods.CreateStretchButton = libMethods.CreateStretchButtonOriginal
 end
