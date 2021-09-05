@@ -1,7 +1,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.1", 1
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.1", 2
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -510,10 +510,7 @@ local function DropDownMenuSearch_OnShow(self)
 	self.searchBox:SetText("")
 	self:updateFilters()
 	local totalHeight = (self.index + 1) * self.listScroll.buttonHeight
-	local scrollHeight = self.listScroll:GetHeight()
-	if totalHeight > scrollHeight then
-		self.listScroll.scrollBar:SetValue(totalHeight - scrollHeight)
-	end
+	self.listScroll.scrollBar:SetValue(totalHeight - self.listScroll:GetHeight())
 end
 
 
@@ -809,7 +806,11 @@ function DropDownMenuSearchMixin:addButton(info)
 			width = width - 20
 		elseif not info.isNotRadio then
 			local checked = info.checked
-			if type(checked) == "function" then checked = checked(info) end
+			if type(checked) == "function" then
+				checked = checked(info)
+			elseif v.DROPDOWNBUTTON.dropDownSetText and checked == nil and not info.isNotRadio then
+				checked = info.value == v.DROPDOWNBUTTON.selectedValue
+			end
 			if checked then self.index = #self.buttons end
 		end
 
@@ -1094,6 +1095,7 @@ function DropDownButtonMixin:ddInitialize(level, value, initFunction)
 	local menu = dropDownMenusList[level]
 	MenuReset(menu)
 	menu.anchorFrame = self
+	v.DROPDOWNBUTTON = self
 	self:ddSetInitFunc(initFunction)
 	initFunction(self, level, value)
 	self:ddRefresh(level)
