@@ -1,7 +1,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.1", 2
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.1", 3
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -120,42 +120,11 @@ local v = lib.var
 local menuStyles = v.menuStyles
 
 
-if WoWClassic then
-	menuStyles.backdrop = function(parent)
-		local f = CreateFrame("FRAME", nil, parent)
-		f:SetBackdrop({
-			bgFile = "Interface/DialogFrame/UI-DialogBox-Background-Dark",
-			edgeFile = "Interface/DialogFrame/UI-DialogBox-Border",
-			tile = true,
-			tileSize = 32,
-			edgeSize = 32,
-			insets = {left = 11, right = 11, top = 11, bottom = 9},
-		})
-		return f
-	end
-
-	menuStyles.menuBackdrop = function(parent)
-		local f = CreateFrame("FRAME", nil, parent)
-		f:SetBackdrop({
-			bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-			edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-			tile = true,
-			tileSize = 16,
-			edgeSize = 16,
-			insets = {left = 5, right = 4, top = 4, bottom = 4},
-		})
-		f:SetBackdropBorderColor(TOOLTIP_DEFAULT_COLOR:GetRGB())
-		f:SetBackdropColor(TOOLTIP_DEFAULT_BACKGROUND_COLOR:GetRGB())
-		return f
-	end
-else
-	menuStyles.backdrop = function(parent)
-		return CreateFrame("FRAME", nil, parent, "DialogBorderDarkTemplate")
-	end
-
-	menuStyles.menuBackdrop = function(parent)
-		return CreateFrame("FRAME", nil, parent, "TooltipBackdropTemplate")
-	end
+menuStyles.backdrop = function(parent)
+	return CreateFrame("FRAME", nil, parent, "DialogBorderDarkTemplate")
+end
+menuStyles.menuBackdrop = function(parent)
+	return CreateFrame("FRAME", nil, parent, "TooltipBackdropTemplate")
 end
 
 
