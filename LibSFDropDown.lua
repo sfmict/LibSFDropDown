@@ -1,7 +1,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.1", 3
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.1", 4
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -1619,6 +1619,20 @@ do
 	end
 
 
+	local function OnEnter(self)
+		if self.Text:IsTruncated() then
+			GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT", 0, 0)
+			GameTooltip:SetText(self.Text:GetText())
+			GameTooltip:Show()
+		end
+	end
+
+
+	local function OnLeave()
+		GameTooltip:Hide()
+	end
+
+
 	function libMethods:CreateStretchButtonOriginal(parent, width, height, wrap)
 		self.CreateStretchButtonOriginal = nil
 
@@ -1626,11 +1640,15 @@ do
 		if width then btn:SetWidth(width) end
 		if height then btn:SetHeight(height) end
 		if wrap == nil then wrap = false end
+		btn:SetScript("OnClick", OnClick)
+		btn:SetScript("OnEnter", OnEnter)
+		btn:SetScript("OnLeave", OnLeave)
+		btn:SetMotionScriptsWhileDisabled(true)
+
 		self:SetMixin(btn)
 		btn:ddSetDisplayMode("menu")
 		btn:ddHideWhenButtonHidden()
 		btn:ddSetNoGlobalMouseEvent(true)
-		btn:SetScript("OnClick", OnClick)
 
 		btn.Icon = btn:CreateTexture(nil, "ARTWORK")
 		btn.Icon:SetTexture("Interface/ChatFrame/ChatFrameExpandArrow")
