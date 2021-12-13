@@ -1,7 +1,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.1", 4
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.1", 5
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -1027,6 +1027,7 @@ end
 
 function DropDownButtonMixin:ddSetSelectedText(text, icon, iconInfo)
 	self.Text:SetText(text)
+	if not self.Icon then return end
 	if icon then
 		self.Icon:Show()
 		self.Icon:SetTexture(icon)
@@ -1529,6 +1530,20 @@ function libMethods:SetMixin(btn)
 end
 
 
+local function DropDownTooltip_OnEnter(self)
+	if self.Text:IsTruncated() then
+		GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT", 0, 0)
+		GameTooltip:SetText(self.Text:GetText())
+		GameTooltip:Show()
+	end
+end
+
+
+local function DropDownTooltip_OnLeave()
+	GameTooltip:Hide()
+end
+
+
 do
 	local function SetEnabled(self, enabled)
 		self.Button:SetEnabled(enabled)
@@ -1560,6 +1575,9 @@ do
 
 		local btn = CreateFrame("FRAME", nil, parent)
 		btn:SetSize(width or 135, 24)
+		btn:SetScript("OnEnter", DropDownTooltip_OnEnter)
+		btn:SetScript("OnLeave", DropDownTooltip_OnLeave)
+
 		self:SetMixin(btn)
 		btn:ddSetAutoSetText(true)
 		btn:ddHideWhenButtonHidden()
@@ -1619,20 +1637,6 @@ do
 	end
 
 
-	local function OnEnter(self)
-		if self.Text:IsTruncated() then
-			GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT", 0, 0)
-			GameTooltip:SetText(self.Text:GetText())
-			GameTooltip:Show()
-		end
-	end
-
-
-	local function OnLeave()
-		GameTooltip:Hide()
-	end
-
-
 	function libMethods:CreateStretchButtonOriginal(parent, width, height, wrap)
 		self.CreateStretchButtonOriginal = nil
 
@@ -1641,8 +1645,8 @@ do
 		if height then btn:SetHeight(height) end
 		if wrap == nil then wrap = false end
 		btn:SetScript("OnClick", OnClick)
-		btn:SetScript("OnEnter", OnEnter)
-		btn:SetScript("OnLeave", OnLeave)
+		btn:SetScript("OnEnter", DropDownTooltip_OnEnter)
+		btn:SetScript("OnLeave", DropDownTooltip_OnLeave)
 		btn:SetMotionScriptsWhileDisabled(true)
 
 		self:SetMixin(btn)
@@ -1650,10 +1654,10 @@ do
 		btn:ddHideWhenButtonHidden()
 		btn:ddSetNoGlobalMouseEvent(true)
 
-		btn.Icon = btn:CreateTexture(nil, "ARTWORK")
-		btn.Icon:SetTexture("Interface/ChatFrame/ChatFrameExpandArrow")
-		btn.Icon:SetSize(10, 12)
-		btn.Icon:SetPoint("RIGHT", -5, 0)
+		btn.Arrow = btn:CreateTexture(nil, "ARTWORK")
+		btn.Arrow:SetTexture("Interface/ChatFrame/ChatFrameExpandArrow")
+		btn.Arrow:SetSize(10, 12)
+		btn.Arrow:SetPoint("RIGHT", -5, 0)
 
 		btn:SetText(" ")
 		btn.Text = btn:GetFontString()
