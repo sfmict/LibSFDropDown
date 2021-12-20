@@ -1,7 +1,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.1", 5
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.1", 6
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -46,7 +46,7 @@ info.checked = [nil, true, function(self)]  --  Check the button if true or func
 info.isNotRadio = [nil, true]  --  Check the button uses radial image if false check box image if true
 info.notCheckable = [nil, true]  --  Shrink the size of the buttons and don't display a check box
 info.isTitle = [nil, true]  --  If it's a title the button is disabled and the font color is set to yellow
-info.disabled = [nil, true]  --  Disable the button and show an invisible button that still traps the mouseover event so menu doesn't time out
+info.disabled = [nil, true, function(self)]  --  Disable the button and show an invisible button that still traps the mouseover event so menu doesn't time out
 info.hasArrow = [nil, true]  --  Show the expand arrow for multilevel menus
 info.keepShownOnClick = [nil, true]  --  Don't hide the dropdownlist after a button is clicked
 info.arg1 = [anything]  --  This is the first argument used by info.func
@@ -595,7 +595,9 @@ function DropDownMenuSearchMixin:refresh()
 				btn:SetDisabledFontObject(GameFontDisableSmallLeft)
 			end
 
-			if info.disabled or info.isTitle then
+			local disabled = info.disabled
+			if type(disabled) == "function" then disabled = disabled(info) end
+			if disabled or info.isTitle then
 				btn:Disable()
 			else
 				btn:Enable()
@@ -756,7 +758,9 @@ function DropDownMenuSearchMixin:addButton(info)
 				btn:SetDisabledFontObject(GameFontDisableSmallLeft)
 			end
 
-			if btn.disabled or btn.isTitle then
+			local disabled = info.disabled
+			if type(disabled) == "function" then disabled = disabled(info) end
+			if disabled or btn.isTitle then
 				btn:Disable()
 			else
 				btn:Enable()
@@ -1119,6 +1123,7 @@ function DropDownButtonMixin:ddToggle(level, value, anchorFrame, xOffset, yOffse
 		yOffset = 5
 	end
 
+	if level == 1 then v.DROPDOWNBUTTON = self end
 	MenuReset(menu)
 	self:initialize(level, value)
 
@@ -1129,7 +1134,6 @@ function DropDownButtonMixin:ddToggle(level, value, anchorFrame, xOffset, yOffse
 	menu:SetSize(menu.width, menu.height)
 
 	if level == 1 then
-		v.DROPDOWNBUTTON = self
 		menu:SetPoint("TOPLEFT", anchorFrame, "BOTTOMLEFT", xOffset, yOffset)
 	else
 		if GetScreenWidth() - anchorFrame:GetRight() - 2 < menu.width then
@@ -1162,6 +1166,10 @@ function DropDownButtonMixin:ddRefresh(level, anchorFrame)
 	for i = 1, #menu.buttonsList do
 		local btn = menu.buttonsList[i]
 		if btn:IsShown() then
+			if type(btn.disabled) == "function" then
+				btn:SetEnabled(not btn:disabled())
+			end
+
 			if type(btn.text) == "function" then
 				btn._text = btn:text()
 				btn:SetText(btn._text)
@@ -1272,7 +1280,9 @@ function DropDownButtonMixin:ddAddButton(info, level)
 		btn:SetDisabledFontObject(GameFontDisableSmallLeft)
 	end
 
-	if info.disabled or info.isTitle then
+	local disabled = info.disabled
+	if type(disabled) == "function" then disabled = disabled(info) end
+	if disabled or info.isTitle then
 		btn:Disable()
 	else
 		btn:Enable()
