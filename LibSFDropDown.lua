@@ -1,7 +1,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.1", 6
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.1", 7
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -1017,6 +1017,12 @@ local function MenuReset(menu)
 	menu.height = 15
 	menu.numButtons = 0
 	wipe(menu.searchFrames)
+	if menu.customFrames then
+		for i = 1, #menu.customFrames do
+			menu.customFrames[i]:Hide()
+		end
+		menu.customFrames = nil
+	end
 end
 
 
@@ -1158,65 +1164,51 @@ function DropDownButtonMixin:ddToggle(level, value, anchorFrame, xOffset, yOffse
 end
 
 
-function DropDownButtonMixin:ddRefresh(level, anchorFrame)
-	if not level then level = 1 end
-	if not anchorFrame then anchorFrame = self end
-	local menu = dropDownMenusList[level]
+do
+	local function RefreshButton(self, btn, setText)
+		if type(btn.disabled) == "function" then
+			btn:SetEnabled(not btn:disabled())
+		end
 
-	for i = 1, #menu.buttonsList do
-		local btn = menu.buttonsList[i]
-		if btn:IsShown() then
-			if type(btn.disabled) == "function" then
-				btn:SetEnabled(not btn:disabled())
+		if type(btn.text) == "function" then
+			btn._text = btn:text()
+			btn:SetText(btn._text)
+		end
+
+		if not btn.notCheckable then
+			if type(btn.checked) == "function" then
+				btn._checked = btn:checked()
+			elseif self.dropDownSetText and btn.checked == nil and not btn.isNotRadio then
+				btn._checked = btn.value == self.selectedValue
 			end
+			btn.Check:SetShown(btn._checked)
+			btn.UnCheck:SetShown(not btn._checked)
 
-			if type(btn.text) == "function" then
-				btn._text = btn:text()
-				btn:SetText(btn._text)
+			if setText and btn._checked then
+				self:ddSetSelectedText(btn._text, btn.icon, btn.iconInfo)
 			end
-
-			if not btn.notCheckable then
-				if type(btn.checked) == "function" then
-					btn._checked = btn:checked()
-				elseif self.dropDownSetText and btn.checked == nil and not btn.isNotRadio then
-					btn._checked = btn.value == self.selectedValue
-				end
-				btn.Check:SetShown(btn._checked)
-				btn.UnCheck:SetShown(not btn._checked)
-
-				if self.dropDownSetText and btn._checked and menu.anchorFrame == anchorFrame then
-					self:ddSetSelectedText(btn._text, btn.icon, btn.iconInfo)
-				end
-			end
-		else
-			break
 		end
 	end
 
-	for i = 1, #menu.searchFrames do
-		local searchFrame = menu.searchFrames[i]
-		if searchFrame:IsShown() then
-			searchFrame:refresh()
-			if self.dropDownSetText and menu.anchorFrame == anchorFrame then
-				for j = 1, #searchFrame.buttons do
-					local btn = searchFrame.buttons[j]
-					if not btn.notCheckable and not btn.isNotRadio then
-						local checked = btn.checked
-						if type(checked) == "function" then
-							checked = checked(btn)
-						elseif checked == nil then
-							checked = btn.value == self.selectedValue
-						end
-						if checked then
-							local text = btn.text
-							if type(text) == "function" then text = text(btn) end
-							self:ddSetSelectedText(text, btn.icon, btn.iconInfo)
-						end
-					end
-				end
+
+	function DropDownButtonMixin:ddRefresh(level, anchorFrame)
+		if not level then level = 1 end
+		if not anchorFrame then anchorFrame = self end
+		local menu = dropDownMenusList[level]
+		local setText = self.dropDownSetText and menu.anchorFrame == anchorFrame
+
+		for i = 1, #menu.buttonsList do
+			local btn = menu.buttonsList[i]
+			if not btn:IsShown() then break end
+			RefreshButton(self, btn, setText)
+		end
+
+		for i = 1, #menu.searchFrames do
+			local scrollFrame = menu.searchFrames[i].listScroll
+			if not scrollFrame:IsShown() then break end
+			for j = 1, #scrollFrame.buttons do
+				RefreshButton(self, scrollFrame.buttons[j], setText)
 			end
-		else
-			break
 		end
 	end
 end
@@ -1263,6 +1255,28 @@ function DropDownButtonMixin:ddAddButton(info, level)
 				self:ddAddButton(info.list[i], level)
 			end
 		end
+		return
+	end
+
+	if info.customFrame then
+		local frame = info.customFrame
+		if info.OnLoad then info.OnLoad(frame) end
+
+		frame:SetParent(menu)
+		frame:ClearAllPoints()
+		frame:SetPoint("TOPLEFT", 15, -menu.height)
+
+		width = frame:GetWidth()
+		if menu.width < width then menu.width = width end
+
+		if not info.fixedWidth then
+			frame:SetPoint("RIGHT", -15, 0)
+		end
+		frame:Show()
+
+		menu.customFrames = menu.customFrames or {}
+		menu.customFrames[#menu.customFrames + 1] = frame
+		menu.height = menu.height + frame:GetHeight()
 		return
 	end
 
