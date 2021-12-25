@@ -1,0 +1,6 @@
+## Interface: 11401
+## Title: LibSFDropDown
+## Author: sfmict
+## Notes: Dropdown menu library
+## Version: @project-version@
+LibSFDropDown.xml

@@ -1,7 +1,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.1", 7
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.2", 1
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -11,21 +11,21 @@ local math, pairs, rawget, type, wipe = math, pairs, rawget, type, wipe
 local CreateFrame, GetBindingKey, HybridScrollFrame_GetOffset, HybridScrollFrame_Update, HybridScrollFrame_OnValueChanged, HybridScrollFrameScrollButton_OnClick, HybridScrollFrameScrollUp_OnLoad, SearchBoxTemplate_OnTextChanged, PlaySound, SOUNDKIT, GameTooltip, GetScreenWidth = CreateFrame, GetBindingKey,HybridScrollFrame_GetOffset, HybridScrollFrame_Update, HybridScrollFrame_OnValueChanged, HybridScrollFrameScrollButton_OnClick, HybridScrollFrameScrollUp_OnLoad, SearchBoxTemplate_OnTextChanged, PlaySound, SOUNDKIT, GameTooltip, GetScreenWidth
 
 
-local WoWClassic, WoWTBC, WOWRetail
+local WoWClassic, WoWTBC, WoWRetail
 local wowversion = select(4, GetBuildInfo())
 if wowversion < 20000 then
 	WoWClassic = true
 elseif wowversion < 90000 then
 	WoWTBC = true
 else
-	WOWRetail = true
+	WoWRetail = true
 end
 local StartCounting, StopCounting
 
 
 if oldminor < 1 then
 	lib.var = {
-		DROPDOWNBUTTON = nil,
+		-- DROPDOWNBUTTON = nil,
 		defaultStyle = "backdrop",
 		menuStyle = "menuBackdrop",
 		menuStyles = {},
@@ -78,6 +78,9 @@ info.OnEnter = [function(self, arg1, arg2)] -- Handler OnEnter
 info.OnLeave = [function(self, arg1, arg2)] -- Handler OnLeave
 info.tooltipWhileDisabled = [nil, true] -- Show the tooltip, even when the button is disabled
 info.OnTooltipShow = [function(self, tooltipFrame, arg1, arg2)] -- Handler tooltip show
+info.customFrame = [frame] -- Allows this button to be a completely custom frame
+info.fixedWidth = [nil, true] -- If nill then custom frame is stretched
+info.OnLoad = [function(customFrame)] -- Function called when the custom frame is attached
 info.list = [table]  --  The table of info buttons, if there are more than 20 buttons, a scroll frame is added. Available attributes in table "dropDonwOptions".
 ]]
 local dropDownOptions = {
@@ -138,8 +141,14 @@ local function CreateMenuStyle(menu, name, frameFunc)
 end
 
 
-local function OnHide(self)
+local function DropDownMenuList_OnHide(self)
 	self:Hide()
+	if self.customFrames then
+		for i = 1, #self.customFrames do
+			self.customFrames[i]:Hide()
+		end
+		self.customFrames = nil
+	end
 end
 
 
@@ -153,7 +162,7 @@ local function CreateDropDownMenuList(parent)
 	for name, frameFunc in pairs(menuStyles) do
 		CreateMenuStyle(menu, name, frameFunc)
 	end
-	menu:SetScript("OnHide", OnHide)
+	menu:SetScript("OnHide", DropDownMenuList_OnHide)
 
 	if StartCounting then
 		menu:SetScript("OnEnter", StopCounting)
@@ -256,6 +265,11 @@ local function DropDownMenuButton_OnEnable(self)
 	self.UnCheck:SetAlpha(1)
 	self.ExpandArrow:SetDesaturated()
 	self.ExpandArrow:SetAlpha(1)
+end
+
+
+local function OnHide(self)
+	self:Hide()
 end
 
 
@@ -947,7 +961,7 @@ menu1:SetScript("OnKeyDown", function(self, key)
 end)
 
 
-if WOWRetail then
+if WoWRetail then
 	-- CLOSE WHEN CLICK ON A FREE PLACE
 	local function ContainsMouse()
 		for i = 1, #dropDownMenusList do
@@ -975,8 +989,7 @@ if WOWRetail then
 		self:Raise()
 		self:RegisterEvent("GLOBAL_MOUSE_DOWN")
 	end)
-	menu1:SetScript("OnHide", function(self)
-		self:Hide()
+	menu1:HookScript("OnHide", function(self)
 		self:UnregisterEvent("GLOBAL_MOUSE_DOWN")
 	end)
 else
@@ -1017,12 +1030,6 @@ local function MenuReset(menu)
 	menu.height = 15
 	menu.numButtons = 0
 	wipe(menu.searchFrames)
-	if menu.customFrames then
-		for i = 1, #menu.customFrames do
-			menu.customFrames[i]:Hide()
-		end
-		menu.customFrames = nil
-	end
 end
 
 
