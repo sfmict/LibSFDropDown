@@ -644,7 +644,7 @@ function DropDownMenuSearchMixin:refresh()
 			end
 
 			if info.hasColorSwatch then
-				if not btn.colorSwatch then
+				if not btn.colorSwatch or btn.colorSwatch:GetParent() ~= btn then
 					btn.colorSwatch = GetColorSwatchFrame()
 					btn.colorSwatch:SetParent(btn)
 				end
@@ -812,7 +812,7 @@ function DropDownMenuSearchMixin:addButton(info)
 			textPos = textPos - 17
 		end
 
-		width = width - (textPos == -7 and 0 or textPos) 
+		width = width - (textPos == -7 and 0 or textPos)
 
 		if self.width < width then
 			self.width = width
