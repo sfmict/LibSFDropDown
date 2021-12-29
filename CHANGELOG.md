@@ -1,3 +1,4 @@
 # LibSFDropDown
 
-* First revision.
+* Fixed hiding the color swatch button.
+* Now the iconOnly key can be used in info.list.
