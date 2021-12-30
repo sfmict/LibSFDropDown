@@ -935,6 +935,22 @@ end
 
 
 ---------------------------------------------------
+-- UPDATE OLD VERSION
+---------------------------------------------------
+if oldminor < 2 then
+	for i = 1, #v.dropDownMenusList do
+		local menu = v.dropDownMenusList[i]
+		for j = 1, #menu.buttonsList do
+			menu.buttonsList[j]:SetScript("OnHide", DropDownMenuButton_OnHide)
+		end
+	end
+	for i = 1, #v.dropDownSearchFrames do
+		v.dropDownSearchFrames[i].refresh = DropDownMenuSearchMixin.refresh
+	end
+end
+
+
+---------------------------------------------------
 -- DROPDOWN CREATING
 ---------------------------------------------------
 local dropDownMenusList = setmetatable(v.dropDownMenusList, {
@@ -996,7 +1012,8 @@ if WoWRetail then
 		self:Raise()
 		self:RegisterEvent("GLOBAL_MOUSE_DOWN")
 	end)
-	menu1:HookScript("OnHide", function(self)
+	menu1:SetScript("OnHide", function(self)
+		DropDownMenuList_OnHide(self)
 		self:UnregisterEvent("GLOBAL_MOUSE_DOWN")
 	end)
 else
@@ -1485,12 +1502,14 @@ end
 ---------------------------------------------------
 -- LIBRARY
 ---------------------------------------------------
-local libMeta = {
+lib.methods = lib.methods or {
 	__metatable = "access denied",
 	__index = {},
 }
-setmetatable(lib, libMeta)
-local libMethods = libMeta.__index
+if oldminor < 1 then
+	setmetatable(lib, lib.methods)
+end
+local libMethods = lib.methods.__index
 
 
 function libMethods:IterateMenus()
