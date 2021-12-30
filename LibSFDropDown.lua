@@ -269,8 +269,9 @@ local function DropDownMenuButton_OnEnable(self)
 end
 
 
-local function OnHide(self)
+local function DropDownMenuButton_OnHide(self)
 	self:Hide()
+	self.colorSwatch = nil
 end
 
 
@@ -333,7 +334,7 @@ local function CreateDropDownMenuButton(parent)
 	btn:SetScript("OnLeave", DropDownMenuButton_OnLeave)
 	btn:SetScript("OnDisable", DropDownMenuButton_OnDisable)
 	btn:SetScript("OnEnable", DropDownMenuButton_OnEnable)
-	btn:SetScript("OnHide", OnHide)
+	btn:SetScript("OnHide", DropDownMenuButton_OnHide)
 
 	if StartCounting then
 		btn:HookScript("OnEnter", StopCounting)
@@ -427,6 +428,11 @@ end
 ---------------------------------------------------
 -- DROPDOWN COLOR SWATCH
 ---------------------------------------------------
+local function OnHide(self)
+	self:Hide()
+end
+
+
 local function ColorSwatch_OnClick(self)
 	v.DROPDOWNBUTTON:ddCloseMenus()
 	OpenColorPicker(self:GetParent())
@@ -501,6 +507,11 @@ end
 local function DropDownMenuSearch_OnTextChanged(self)
 	SearchBoxTemplate_OnTextChanged(self)
 	self:GetParent():updateFilters()
+end
+
+
+local function DropDownMenuSearch_OnEnter(self)
+	v.DROPDOWNBUTTON:ddCloseMenus(self:GetParent().listScroll.ScrollChild.id + 1)
 end
 
 
@@ -644,7 +655,7 @@ function DropDownMenuSearchMixin:refresh()
 			end
 
 			if info.hasColorSwatch then
-				if not btn.colorSwatch or btn.colorSwatch:GetParent() ~= btn then
+				if not btn.colorSwatch then
 					btn.colorSwatch = GetColorSwatchFrame()
 					btn.colorSwatch:SetParent(btn)
 				end
@@ -656,9 +667,7 @@ function DropDownMenuSearchMixin:refresh()
 					btn.func = function() btn.colorSwatch:Click() end
 				end
 			elseif btn.colorSwatch then
-				if btn.colorSwatch:GetParent() == btn then
-					btn.colorSwatch:Hide()
-				end
+				btn.colorSwatch:Hide()
 				btn.colorSwatch = nil
 			end
 
@@ -834,6 +843,7 @@ local function CreateDropDownMenuSearch(i)
 	f.searchBox:SetPoint("TOPLEFT", 5, -3)
 	f.searchBox:SetPoint("TOPRIGHT", 1, 0)
 	f.searchBox:SetScript("OnTextChanged", DropDownMenuSearch_OnTextChanged)
+	f.searchBox:SetScript("OnEnter", DropDownMenuSearch_OnEnter)
 
 	f.listScroll = CreateFrame("ScrollFrame", MAJOR_VERSION.."ScrollFrame"..i, f, "HybridScrollFrameTemplate")
 	f.listScroll:SetSize(30, DropDownMenuSearchHeight - 26)
@@ -1077,19 +1087,36 @@ function DropDownButtonMixin:ddInitialize(level, value, initFunction)
 	end
 	level = level or 1
 	local menu = dropDownMenusList[level]
-	MenuReset(menu)
 	menu.anchorFrame = self
 	v.DROPDOWNBUTTON = self
+
+	MenuReset(menu)
 	self:ddSetInitFunc(initFunction)
-	initFunction(self, level, value)
+	self:initialize(level, value)
+	for i = 1, #menu.searchFrames do
+		menu.searchFrames[i]:updateFilters()
+	end
 	self:ddRefresh(level)
+
 	for i = 1, menu.numButtons do
 		local btn = menu.buttonsList[i]
 		btn:Hide()
-		if btn.colorSwatch then btn.colorSwatch:Hide() end
+		if btn.colorSwatch then
+			btn.colorSwatch:Hide()
+			btn.colorSwatch = nil
+		end
 	end
 	for i = 1, #menu.searchFrames do
-		menu.searchFrames[i]:Hide()
+		local searchFrame = menu.searchFrames[i]
+		searchFrame:Hide()
+		local buttons = searchFrame.listScroll.buttons
+		for j = 1, #buttons do
+			local btn = buttons[j]
+			if btn.colorSwatch then
+				btn.colorSwatch:Hide()
+				btn.colorSwatch = nil
+			end
+		end
 	end
 end
 
@@ -1211,7 +1238,9 @@ do
 			local scrollFrame = menu.searchFrames[i].listScroll
 			if not scrollFrame:IsShown() then break end
 			for j = 1, #scrollFrame.buttons do
-				RefreshButton(self, scrollFrame.buttons[j], setText)
+				local btn = scrollFrame.buttons[j]
+				if not btn:IsShown() then break end
+				RefreshButton(self, btn, setText)
 			end
 		end
 	end
