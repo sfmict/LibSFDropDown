@@ -1,3 +1,4 @@
 # LibSFDropDown
 
-* Fixed lib methods error.
+* Improved style system.
+* Added skins for ElvUI, Tukui, Aurora.

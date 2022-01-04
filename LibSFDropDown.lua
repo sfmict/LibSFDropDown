@@ -1,7 +1,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.2", 3
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.3", 1
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -24,7 +24,7 @@ local StartCounting, StopCounting
 
 
 if oldminor < 1 then
-	lib.var = {
+	lib._v = {
 		-- DROPDOWNBUTTON = nil,
 		defaultStyle = "backdrop",
 		menuStyle = "menuBackdrop",
@@ -32,48 +32,55 @@ if oldminor < 1 then
 		colorSwatchFrames = {},
 		dropDownSearchFrames = {},
 		dropDownMenusList = {},
+		dropDownCreatedButtons = {},
+		dropDownCreatedStretchButtons = {},
 	}
+	lib._m = {
+		__metatable = "access denied",
+		__index = {},
+	}
+	setmetatable(lib, lib._m)
 end
 
 
 --[[
 List of button attributes
 ====================================================================================================
-info.text = [string, function(self)]  --  The text of the button or function that returns the text
-info.value = [anything]  --  The value that is set to button.value
-info.func = [function(self, arg1, arg2, checked)]  --  The function that is called when you click the button
-info.checked = [nil, true, function(self)]  --  Check the button if true or function returns true
-info.isNotRadio = [nil, true]  --  Check the button uses radial image if false check box image if true
-info.notCheckable = [nil, true]  --  Shrink the size of the buttons and don't display a check box
-info.isTitle = [nil, true]  --  If it's a title the button is disabled and the font color is set to yellow
-info.disabled = [nil, true, function(self)]  --  Disable the button and show an invisible button that still traps the mouseover event so menu doesn't time out
-info.hasArrow = [nil, true]  --  Show the expand arrow for multilevel menus
-info.keepShownOnClick = [nil, true]  --  Don't hide the dropdownlist after a button is clicked
-info.arg1 = [anything]  --  This is the first argument used by info.func
-info.arg2 = [anything]  --  This is the second argument used by info.func
-info.icon = [texture]  --  An icon for the button
-info.iconInfo = [table]  --  A table that looks like {
-	tCoordLeft = [0.0 - 1.0],  --  left for SetTexCoord func
-	tCoordRight = [0.0 - 1.0],  --  right for SetTexCoord func
+info.text = [string, function(self)] -- The text of the button or function that returns the text
+info.value = [anything] -- The value that is set to button.value
+info.func = [function(self, arg1, arg2, checked)] -- The function that is called when you click the button
+info.checked = [nil, true, function(self)] -- Check the button if true or function returns true
+info.isNotRadio = [nil, true] -- Check the button uses radial image if false check box image if true
+info.notCheckable = [nil, true] -- Shrink the size of the buttons and don't display a check box
+info.isTitle = [nil, true] -- If it's a title the button is disabled and the font color is set to yellow
+info.disabled = [nil, true, function(self)] -- Disable the button and show an invisible button that still traps the mouseover event so menu doesn't time out
+info.hasArrow = [nil, true] -- Show the expand arrow for multilevel menus
+info.keepShownOnClick = [nil, true] -- Don't hide the dropdownlist after a button is clicked
+info.arg1 = [anything] -- This is the first argument used by info.func
+info.arg2 = [anything] -- This is the second argument used by info.func
+info.icon = [texture] -- An icon for the button
+info.iconInfo = [table] -- A table that looks like {
+	tCoordLeft = [0.0 - 1.0], -- left for SetTexCoord func
+	tCoordRight = [0.0 - 1.0], -- right for SetTexCoord func
 	tCoordTop = [0.0 - 1.0], -- top for SetTexCoord func
-	tCoordBottom = [0.0 - 1.0],  --  bottom for SetTexCoord func
-	tSizeX = [number],  --  texture width
-	tSizeY = [number],  --  texture height
+	tCoordBottom = [0.0 - 1.0], -- bottom for SetTexCoord func
+	tSizeX = [number], -- texture width
+	tSizeY = [number], -- texture height
 }
-info.indent = [number]  --  Number of pixels to pad the button on the left side
-info.remove = [function(self)]  --  The function that is called when you click the remove button
-info.order = [function(self, delta)]  --  The function that is called when you click the up or down arrow button
-info.hasColorSwatch = [nil, true]  --  Show color swatch or not, for color selection
-info.r = [0.0 - 1.0]  --  Red color value of the color swatch
-info.g = [0.0 - 1.0]  --  Green color value of the color swatch
-info.b = [0.0 - 1.0]  --  Blue color value of the color swatch
-info.swatchFunc = [function]  --  Function called by the color picker on color change
-info.hasOpacity = [nil, ture]  --  Show the opacity slider on the colorpicker frame
-info.opacity = [0.0 - 1.0]  --  Percentatge of the opacity, 1.0 is fully shown, 0 is transparent
-info.opacityFunc = [function]  --  Function called by the opacity slider when you change its value
-info.cancelFunc = [function(previousValues)]  --  Function called by the colorpicker when you click the cancel button (it takes the previous values as its argument)
-info.justifyH = [nil, "CENTER", "RIGHT"]  --  Justify button text
-info.fontObject = [font]  --  The font object replacement for Normal and Highlight
+info.indent = [number] -- Number of pixels to pad the button on the left side
+info.remove = [function(self)] -- The function that is called when you click the remove button
+info.order = [function(self, delta)] -- The function that is called when you click the up or down arrow button
+info.hasColorSwatch = [nil, true] -- Show color swatch or not, for color selection
+info.r = [0.0 - 1.0] -- Red color value of the color swatch
+info.g = [0.0 - 1.0] -- Green color value of the color swatch
+info.b = [0.0 - 1.0] -- Blue color value of the color swatch
+info.swatchFunc = [function] -- Function called by the color picker on color change
+info.hasOpacity = [nil, ture] -- Show the opacity slider on the colorpicker frame
+info.opacity = [0.0 - 1.0] -- Percentatge of the opacity, 1.0 is fully shown, 0 is transparent
+info.opacityFunc = [function] -- Function called by the opacity slider when you change its value
+info.cancelFunc = [function(previousValues)] -- Function called by the colorpicker when you click the cancel button (it takes the previous values as its argument)
+info.justifyH = [nil, "CENTER", "RIGHT"] -- Justify button text
+info.fontObject = [font] -- The font object replacement for Normal and Highlight
 info.OnEnter = [function(self, arg1, arg2)] -- Handler OnEnter
 info.OnLeave = [function(self, arg1, arg2)] -- Handler OnLeave
 info.tooltipWhileDisabled = [nil, true] -- Show the tooltip, even when the button is disabled
@@ -81,7 +88,8 @@ info.OnTooltipShow = [function(self, tooltipFrame, arg1, arg2)] -- Handler toolt
 info.customFrame = [frame] -- Allows this button to be a completely custom frame
 info.fixedWidth = [nil, true] -- If nil then custom frame is stretched
 info.OnLoad = [function(customFrame)] -- Function called when the custom frame is attached
-info.list = [table]  --  The table of info buttons, if there are more than 20 buttons, a scroll frame is added. Available attributes in table "dropDonwOptions".
+info.hideSearch = [nil, true] -- Remove SearchBox if info.list displays as scroll menu
+info.list = [table] -- The table of info buttons, if there are more than 20 buttons, a scroll frame is added. Available attributes in table "dropDonwOptions".
 ]]
 local dropDownOptions = {
 	"text",
@@ -120,7 +128,7 @@ local dropDownOptions = {
 }
 local DropDownMenuButtonHeight = 16
 local DropDownMenuSearchHeight = DropDownMenuButtonHeight * 20 + 26
-local v = lib.var
+local v = lib._v
 local menuStyles = v.menuStyles
 
 
@@ -504,14 +512,25 @@ local function DropDownMenuSearch_OnShow(self)
 end
 
 
-local function DropDownMenuSearch_OnTextChanged(self)
+local function DropDownMenuSearchBox_OnTextChanged(self, userInput)
 	SearchBoxTemplate_OnTextChanged(self)
-	self:GetParent():updateFilters()
+	if userInput then
+		self:GetParent():updateFilters()
+	end
 end
 
 
-local function DropDownMenuSearch_OnEnter(self)
+local function DropDownMenuSearchBox_OnEnter(self)
 	v.DROPDOWNBUTTON:ddCloseMenus(self:GetParent().listScroll.ScrollChild.id + 1)
+end
+
+
+local function DropDownMenuSearchBoxClear_OnClick(self)
+	PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
+	local searchBox = self:GetParent()
+	searchBox:SetText("")
+	searchBox:ClearFocus()
+	searchBox:GetParent():updateFilters()
 end
 
 
@@ -842,19 +861,21 @@ local function CreateDropDownMenuSearch(i)
 	f.searchBox:SetHeight(20)
 	f.searchBox:SetPoint("TOPLEFT", 5, -3)
 	f.searchBox:SetPoint("TOPRIGHT", 1, 0)
-	f.searchBox:SetScript("OnTextChanged", DropDownMenuSearch_OnTextChanged)
-	f.searchBox:SetScript("OnEnter", DropDownMenuSearch_OnEnter)
+	f.searchBox:SetScript("OnTextChanged", DropDownMenuSearchBox_OnTextChanged)
+	f.searchBox:SetScript("OnEnter", DropDownMenuSearchBox_OnEnter)
+
+	f.searchBox.clearButton:SetScript("OnClick", DropDownMenuSearchBoxClear_OnClick)
 
 	f.listScroll = CreateFrame("ScrollFrame", MAJOR_VERSION.."ScrollFrame"..i, f, "HybridScrollFrameTemplate")
 	f.listScroll:SetSize(30, DropDownMenuSearchHeight - 26)
 	f.listScroll:SetPoint("TOPLEFT", f.searchBox, "BOTTOMLEFT", -5, -3)
-	f.listScroll:SetPoint("BOTTOMRIGHT", -25, 3)
+	f.listScroll:SetPoint("RIGHT", -25, 0)
 
 	f.listScroll.scrollBar = CreateFrame("SLIDER", nil, f.listScroll)
 	local scrollBar = f.listScroll.scrollBar
 	scrollBar.doNotHide = true
 	scrollBar:SetSize(20, 0)
-	scrollBar:SetPoint("TOPLEFT", f.listScroll, "TOPRIGHT", 5, -18)
+	scrollBar:SetPoint("TOPLEFT", f.listScroll, "TOPRIGHT", 5, -15)
 	scrollBar:SetPoint("BOTTOMLEFT", f.listScroll, "BOTTOMRIGHT", 5, 15)
 	scrollBar:SetScript("OnValueChanged", HybridScrollFrame_OnValueChanged)
 
@@ -937,17 +958,6 @@ end
 ---------------------------------------------------
 -- UPDATE OLD VERSION
 ---------------------------------------------------
-if oldminor < 2 then
-	for i = 1, #v.dropDownMenusList do
-		local menu = v.dropDownMenusList[i]
-		for j = 1, #menu.buttonsList do
-			menu.buttonsList[j]:SetScript("OnHide", DropDownMenuButton_OnHide)
-		end
-	end
-	for i = 1, #v.dropDownSearchFrames do
-		v.dropDownSearchFrames[i].refresh = DropDownMenuSearchMixin.refresh
-	end
-end
 
 
 ---------------------------------------------------
@@ -1111,7 +1121,9 @@ function DropDownButtonMixin:ddInitialize(level, value, initFunction)
 	self:ddSetInitFunc(initFunction)
 	self:initialize(level, value)
 	for i = 1, #menu.searchFrames do
-		menu.searchFrames[i]:updateFilters()
+		local searchFrame = menu.searchFrames[i]
+		searchFrame.searchBox:SetText("")
+		searchFrame:updateFilters()
 	end
 	self:ddRefresh(level)
 
@@ -1284,11 +1296,21 @@ function DropDownButtonMixin:ddAddButton(info, level)
 
 	if info.list then
 		if #info.list > 20 then
-			local searchFrame = GetDropDownSearchFrame()
+			local searchFrame, height = GetDropDownSearchFrame()
 			searchFrame:SetParent(menu)
 			searchFrame:SetPoint("TOPLEFT", 15, -menu.height)
 			searchFrame:SetPoint("RIGHT", -15, 0)
 			searchFrame.listScroll.ScrollChild.id = level
+
+			if info.hideSearch then
+				searchFrame.searchBox:Hide()
+				searchFrame.listScroll:SetPoint("TOPLEFT", 0, -3)
+				height = DropDownMenuSearchHeight - 23
+			else
+				searchFrame.searchBox:Show()
+				searchFrame.listScroll:SetPoint("TOPLEFT", searchFrame.searchBox, "BOTTOMLEFT", -5, -3)
+				height = DropDownMenuSearchHeight
+			end
 
 			for i = 1, #info.list do
 				searchFrame:addButton(info.list[i])
@@ -1299,7 +1321,7 @@ function DropDownButtonMixin:ddAddButton(info, level)
 			searchFrame:Show()
 
 			menu.searchFrames[#menu.searchFrames + 1] = searchFrame
-			menu.height = menu.height + DropDownMenuSearchHeight
+			menu.height = menu.height + height
 		else
 			for i = 1, #info.list do
 				self:ddAddButton(info.list[i], level)
@@ -1500,16 +1522,9 @@ end
 
 
 ---------------------------------------------------
--- LIBRARY
+-- LIBRARY METHODS
 ---------------------------------------------------
-lib.methods = lib.methods or {
-	__metatable = "access denied",
-	__index = {},
-}
-if oldminor < 1 then
-	setmetatable(lib, lib.methods)
-end
-local libMethods = lib.methods.__index
+local libMethods = lib._m.__index
 
 
 function libMethods:IterateMenus()
@@ -1542,16 +1557,29 @@ function libMethods:IterateSearchFrameButtons(num)
 end
 
 
-function libMethods:CreateMenuStyle(name, frameFunc, silent)
+function libMethods:CreateMenuStyle(name, overwrite, frameFunc)
+	if type(overwrite) == "function" then
+		frameFunc = overwrite
+		overwrite = nil
+	end
 	if type(name) == "string" and type(frameFunc) == "function" then
 		if menuStyles[name] then
-			if silent then return end
-			error("The style named \""..name.."\" already exists.")
+			if overwrite and name ~= "backdrop" and name ~= "menuBackdrop" then
+				for i = 1, #dropDownMenusList do
+					local styles = dropDownMenusList[i].styles
+					styles[name]:Hide()
+					styles[name] = nil
+				end
+				menuStyles[name] = nil
+			else
+				return false
+			end
 		end
 		for i = 1, #dropDownMenusList do
 			CreateMenuStyle(dropDownMenusList[i], name, frameFunc)
 		end
 		menuStyles[name] = frameFunc
+		return true
 	end
 end
 
@@ -1579,6 +1607,16 @@ function libMethods:SetMixin(btn)
 		btn[k] = v
 	end
 	return btn
+end
+
+
+function libMethods:IterateCreatedButtons()
+	return ipairs(self._v.dropDownCreatedButtons)
+end
+
+
+function libMethods:IterateCreatedStretchButtons()
+	return ipairs(self._v.dropDownCreatedStretchButtons)
 end
 
 
@@ -1678,7 +1716,13 @@ do
 
 		return btn
 	end
-	libMethods.CreateButton = libMethods.CreateButtonOriginal
+
+
+	function libMethods:CreateButton(...)
+		local btn = self:CreateButtonOriginal(...)
+		self._v.dropDownCreatedButtons[#self._v.dropDownCreatedButtons + 1] = btn
+		return btn
+	end
 end
 
 
@@ -1722,5 +1766,11 @@ do
 
 		return btn
 	end
-	libMethods.CreateStretchButton = libMethods.CreateStretchButtonOriginal
+
+
+	function libMethods:CreateStretchButton(...)
+		local btn = self:CreateStretchButtonOriginal(...)
+		self._v.dropDownCreatedStretchButtons[#self._v.dropDownCreatedStretchButtons + 1] = btn
+		return btn
+	end
 end
