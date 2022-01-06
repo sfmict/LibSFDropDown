@@ -1,4 +1,3 @@
 # LibSFDropDown
 
-* Improved style system.
-* Added skins for ElvUI, Tukui, Aurora.
+* Fixed "ddInitialize" function.

@@ -1112,40 +1112,45 @@ function DropDownButtonMixin:ddInitialize(level, value, initFunction)
 		initFunction = value
 		value = nil
 	end
+	self:ddSetInitFunc(initFunction)
+
+	if not self.dropDownSetText then return end
 	level = level or 1
 	local menu = dropDownMenusList[level]
 	menu.anchorFrame = self
 	v.DROPDOWNBUTTON = self
-
 	MenuReset(menu)
-	self:ddSetInitFunc(initFunction)
 	self:initialize(level, value)
-	for i = 1, #menu.searchFrames do
-		local searchFrame = menu.searchFrames[i]
-		searchFrame.searchBox:SetText("")
-		searchFrame:updateFilters()
-	end
-	self:ddRefresh(level)
 
 	for i = 1, menu.numButtons do
 		local btn = menu.buttonsList[i]
+
+		if not (btn.notCheckable or btn.isNotRadio) and btn.value == self.selectedValue then
+			local text = type(btn.text) == "function" and btn:text() or btn.text
+			self:ddSetSelectedText(text, btn.icon, btn.iconInfo)
+		end
+
 		btn:Hide()
 		if btn.colorSwatch then
 			btn.colorSwatch:Hide()
 			btn.colorSwatch = nil
 		end
 	end
+
 	for i = 1, #menu.searchFrames do
 		local searchFrame = menu.searchFrames[i]
-		searchFrame:Hide()
-		local buttons = searchFrame.listScroll.buttons
-		for j = 1, #buttons do
-			local btn = buttons[j]
-			if btn.colorSwatch then
-				btn.colorSwatch:Hide()
-				btn.colorSwatch = nil
+
+		for j = 1, #searchFrame.buttons do
+			local btn = searchFrame.buttons[j]
+
+			if not (btn.notCheckable or btn.isNotRadio) and btn.value == self.selectedValue then
+				local text = type(btn.text) == "function" and btn:text() or btn.text
+				self:ddSetSelectedText(text, btn.icon, btn.iconInfo)
+				break
 			end
 		end
+
+		searchFrame:Hide()
 	end
 end
 
@@ -1244,7 +1249,7 @@ do
 			btn.Check:SetShown(btn._checked)
 			btn.UnCheck:SetShown(not btn._checked)
 
-			if setText and btn._checked then
+			if setText and btn._checked and not btn.isNotRadio then
 				self:ddSetSelectedText(btn._text, btn.icon, btn.iconInfo)
 			end
 		end
