@@ -8,7 +8,7 @@ oldminor = oldminor or 0
 
 
 local math, pairs, rawget, type, wipe = math, pairs, rawget, type, wipe
-local CreateFrame, GetBindingKey, HybridScrollFrame_GetOffset, HybridScrollFrame_Update, HybridScrollFrame_OnValueChanged, HybridScrollFrameScrollButton_OnClick, HybridScrollFrameScrollUp_OnLoad, SearchBoxTemplate_OnTextChanged, PlaySound, SOUNDKIT, GameTooltip, GetScreenWidth = CreateFrame, GetBindingKey,HybridScrollFrame_GetOffset, HybridScrollFrame_Update, HybridScrollFrame_OnValueChanged, HybridScrollFrameScrollButton_OnClick, HybridScrollFrameScrollUp_OnLoad, SearchBoxTemplate_OnTextChanged, PlaySound, SOUNDKIT, GameTooltip, GetScreenWidth
+local CreateFrame, GetBindingKey, HybridScrollFrame_GetOffset, HybridScrollFrame_Update, HybridScrollFrame_OnValueChanged, HybridScrollFrameScrollButton_OnClick, HybridScrollFrameScrollUp_OnLoad, SearchBoxTemplate_OnTextChanged, PlaySound, SOUNDKIT, GameTooltip, GetScreenWidth, UIParent, GetCursorPosition = CreateFrame, GetBindingKey,HybridScrollFrame_GetOffset, HybridScrollFrame_Update, HybridScrollFrame_OnValueChanged, HybridScrollFrameScrollButton_OnClick, HybridScrollFrameScrollUp_OnLoad, SearchBoxTemplate_OnTextChanged, PlaySound, SOUNDKIT, GameTooltip, GetScreenWidth, UIParent, GetCursorPosition
 
 
 local WoWClassic, WoWTBC, WoWRetail
@@ -1222,11 +1222,6 @@ function DropDownButtonMixin:ddToggle(level, value, anchorFrame, xOffset, yOffse
 	end
 	menu.anchorFrame = anchorFrame
 
-	if not xOffset or not yOffset then
-		xOffset = -5
-		yOffset = 5
-	end
-
 	if level == 1 then
 		v.DROPDOWNBUTTON = self
 		if value == nil then value = self.menuValue end
@@ -1239,6 +1234,19 @@ function DropDownButtonMixin:ddToggle(level, value, anchorFrame, xOffset, yOffse
 	if menu.width < 60 then menu.width = 60 end
 	if menu.height < 46 then menu.height = 46 end
 	menu:SetSize(menu.width, menu.height)
+
+	if anchorFrame == "cursor" then
+		anchorFrame = UIParent
+		local x, y = GetCursorPosition()
+		local scale = UIParent:GetScale()
+		xOffset = (xOffset or 0) + x / scale
+		yOffset = (yOffset or 0) + y / scale
+	end
+
+	if not xOffset or not yOffset then
+		xOffset = -5
+		yOffset = 3
+	end
 
 	if level == 1 then
 		menu:SetPoint("TOPLEFT", anchorFrame, "BOTTOMLEFT", xOffset, yOffset)
@@ -1561,6 +1569,34 @@ function DropDownButtonMixin:ddAddSpace(level)
 		notCheckable = true,
 	}
 	self:ddAddButton(info, level)
+end
+
+
+DropDownButtonMixin.ddEasyMenuInitialize = function(self, level, menuList)
+	for i = 1, #menuList do
+		local info = menuList[i]
+		if info.menuList then
+			info.hasArrow = true
+			info.value = info.menuList
+		end
+		if info.list then
+			for j = 1, #info.list do
+				local subInfo = info.list[j]
+				if subInfo.menuList then
+					subInfo.hasArrow = true
+					subInfo.value = subInfo.menuList
+				end
+			end
+		end
+		self:ddAddButton(info, level)
+	end
+end
+
+
+function DropDownButtonMixin:ddEasyMenu(menuList, anchorFrame, xOffset, yOffset, displayMode)
+	self:ddSetDisplayMode(displayMode)
+	self:ddInitialize(1, menuList, self.ddEasyMenuInitialize)
+	self:ddToggle(1, menuList, anchorFrame, xOffset, yOffset)
 end
 
 
