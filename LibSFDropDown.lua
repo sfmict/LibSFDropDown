@@ -1,7 +1,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.3", 2
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.3", 3
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -383,7 +383,6 @@ local function CreateDropDownMenuButton(parent)
 	btn.removeButton = CreateFrame("BUTTON", nil, btn)
 	btn.removeButton:SetAlpha(0)
 	btn.removeButton:SetSize(16, 16)
-	btn.removeButton:SetPoint("RIGHT", -5, 0)
 	btn.removeButton:SetScript("OnEnter", ControlButton_OnEnter)
 	btn.removeButton:SetScript("OnLeave", ControlButton_OnLeave)
 	btn.removeButton:SetScript("OnMouseDown", ControlButton_OnMouseDown)
@@ -534,6 +533,16 @@ local function DropDownMenuSearchBoxClear_OnClick(self)
 end
 
 
+local function DropDownMenuSearchScrollBar_OnEnter(self)
+	v.DROPDOWNBUTTON:ddCloseMenus(self:GetParent().ScrollChild.id + 1)
+end
+
+
+local function DropDownMenuSearchScrollBarControl_OnEnter(self)
+	v.DROPDOWNBUTTON:ddCloseMenus(self:GetParent():GetParent().ScrollChild.id + 1)
+end
+
+
 local function DropDownMenuSearch_Update(self)
 	self:GetParent():refresh()
 end
@@ -656,9 +665,15 @@ function DropDownMenuSearchMixin:refresh()
 			end
 
 			local textPos = -5
+			if info.hasArrow then
+				textPos = -12
+			end
+			btn.ExpandArrow:SetShown(info.hasArrow)
+
 			if info.remove then
-				btn.removeButton:Show()
+				btn.removeButton:SetPoint("RIGHT", textPos, 0)
 				textPos = textPos - 17
+				btn.removeButton:Show()
 			else
 				btn.removeButton:Hide()
 			end
@@ -828,6 +843,10 @@ function DropDownMenuSearchMixin:addButton(info)
 		end
 
 		local textPos = -7
+		if info.hasArrow then
+			textPos = -12
+		end
+
 		if info.remove then
 			textPos = textPos - 17
 		end
@@ -878,6 +897,7 @@ local function CreateDropDownMenuSearch(i)
 	scrollBar:SetPoint("TOPLEFT", f.listScroll, "TOPRIGHT", 5, -15)
 	scrollBar:SetPoint("BOTTOMLEFT", f.listScroll, "BOTTOMRIGHT", 5, 15)
 	scrollBar:SetScript("OnValueChanged", HybridScrollFrame_OnValueChanged)
+	scrollBar:SetScript("OnEnter", DropDownMenuSearchScrollBar_OnEnter)
 
 	scrollBar:SetThumbTexture("Interface/Buttons/UI-ScrollBar-Knob")
 	scrollBar.thumbTexture = scrollBar:GetThumbTexture()
@@ -898,6 +918,7 @@ local function CreateDropDownMenuSearch(i)
 	scrollBar.UpButton:SetDisabledAtlas("UI-ScrollBar-ScrollUpButton-Disabled")
 	scrollBar.UpButton:SetHighlightAtlas("UI-ScrollBar-ScrollUpButton-Highlight")
 	scrollBar.UpButton:SetScript("OnClick", HybridScrollFrameScrollButton_OnClick)
+	scrollBar.UpButton:SetScript("OnEnter", DropDownMenuSearchScrollBarControl_OnEnter)
 	HybridScrollFrameScrollUp_OnLoad(scrollBar.UpButton)
 
 	scrollBar.DownButton = CreateFrame("BUTTON", nil, scrollBar)
@@ -908,6 +929,7 @@ local function CreateDropDownMenuSearch(i)
 	scrollBar.DownButton:SetDisabledAtlas("UI-ScrollBar-ScrollDownButton-Disabled")
 	scrollBar.DownButton:SetHighlightAtlas("UI-ScrollBar-ScrollDownButton-Highlight")
 	scrollBar.DownButton:SetScript("OnClick", HybridScrollFrameScrollButton_OnClick)
+	scrollBar.DownButton:SetScript("OnEnter", DropDownMenuSearchScrollBarControl_OnEnter)
 	HybridScrollFrameScrollDown_OnLoad(scrollBar.DownButton)
 
 	if StartCounting then
@@ -966,6 +988,9 @@ end
 local dropDownMenusList = setmetatable(v.dropDownMenusList, {
 	__index = function(self, key)
 		local frame = CreateDropDownMenuList(key == 1 and UIParent or self[key - 1])
+		if key ~= 1 then
+			frame:SetFrameLevel(self[key - 1]:GetFrameLevel() + 4)
+		end
 		frame.id = key
 		frame.searchFrames = {}
 		frame.buttonsList = setmetatable({}, {
@@ -1120,6 +1145,9 @@ function DropDownButtonMixin:ddInitialize(level, value, initFunction)
 	menu.anchorFrame = self
 	v.DROPDOWNBUTTON = self
 	MenuReset(menu)
+	if level == 1 and value == nil then
+		value = self.menuValue
+	end
 	self:initialize(level, value)
 
 	for i = 1, menu.numButtons do
@@ -1165,6 +1193,11 @@ function DropDownButtonMixin:ddSetAutoSetText(enabled)
 end
 
 
+function DropDownButtonMixin:ddSetValue(value)
+	self.menuValue = value
+end
+
+
 function DropDownButtonMixin:ddSetNoGlobalMouseEvent(enabled, frame)
 	(frame or self).LibSFDropDownNoGMEvent = enabled and true or nil
 end
@@ -1194,7 +1227,10 @@ function DropDownButtonMixin:ddToggle(level, value, anchorFrame, xOffset, yOffse
 		yOffset = 5
 	end
 
-	if level == 1 then v.DROPDOWNBUTTON = self end
+	if level == 1 then
+		v.DROPDOWNBUTTON = self
+		if value == nil then value = self.menuValue end
+	end
 	MenuReset(menu)
 	self:initialize(level, value)
 
@@ -1303,6 +1339,7 @@ function DropDownButtonMixin:ddAddButton(info, level)
 		if #info.list > 20 then
 			local searchFrame, height = GetDropDownSearchFrame()
 			searchFrame:SetParent(menu)
+			searchFrame:SetFrameLevel(menu:GetFrameLevel())
 			searchFrame:SetPoint("TOPLEFT", 15, -menu.height)
 			searchFrame:SetPoint("RIGHT", -15, 0)
 			searchFrame.listScroll.ScrollChild.id = level
@@ -1388,9 +1425,15 @@ function DropDownButtonMixin:ddAddButton(info, level)
 	end
 
 	local textPos = -5
+	if info.hasArrow then
+		textPos = -12
+	end
+	btn.ExpandArrow:SetShown(info.hasArrow)
+
 	if info.remove then
-		btn.removeButton:Show()
+		btn.removeButton:SetPoint("RIGHT", textPos, 0)
 		textPos = textPos - 17
+		btn.removeButton:Show()
 	else
 		btn.removeButton:Hide()
 	end
@@ -1488,11 +1531,6 @@ function DropDownButtonMixin:ddAddButton(info, level)
 		btn.Check:SetShown(btn._checked)
 		btn.UnCheck:SetShown(not btn._checked)
 	end
-
-	if info.hasArrow then
-		width = width + 12
-	end
-	btn.ExpandArrow:SetShown(info.hasArrow)
 
 	btn:SetPoint("TOPLEFT", 15, -menu.height)
 	btn:Show()
