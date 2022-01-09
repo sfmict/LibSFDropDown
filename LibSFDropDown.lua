@@ -1,14 +1,15 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.3", 3
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.4", 1
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
 
 
 local math, pairs, rawget, type, wipe = math, pairs, rawget, type, wipe
-local CreateFrame, GetBindingKey, HybridScrollFrame_GetOffset, HybridScrollFrame_Update, HybridScrollFrame_OnValueChanged, HybridScrollFrameScrollButton_OnClick, HybridScrollFrameScrollUp_OnLoad, SearchBoxTemplate_OnTextChanged, PlaySound, SOUNDKIT, GameTooltip, GetScreenWidth, UIParent, GetCursorPosition = CreateFrame, GetBindingKey,HybridScrollFrame_GetOffset, HybridScrollFrame_Update, HybridScrollFrame_OnValueChanged, HybridScrollFrameScrollButton_OnClick, HybridScrollFrameScrollUp_OnLoad, SearchBoxTemplate_OnTextChanged, PlaySound, SOUNDKIT, GameTooltip, GetScreenWidth, UIParent, GetCursorPosition
+local CreateFrame, GetBindingKey, PlaySound, SOUNDKIT, GameTooltip, GetScreenWidth, UIParent, GetCursorPosition = CreateFrame, GetBindingKey, PlaySound, SOUNDKIT, GameTooltip, GetScreenWidth, UIParent, GetCursorPosition
+local HybridScrollFrame_GetOffset, HybridScrollFrame_Update, HybridScrollFrame_OnValueChanged, HybridScrollFrameScrollButton_OnClick, HybridScrollFrameScrollUp_OnLoad, HybridScrollFrameScrollDown_OnLoad, SearchBoxTemplate_OnTextChanged, ScrollFrame_OnVerticalScroll, UIPanelScrollBar_OnValueChanged, UIPanelScrollBarScrollUpButton_OnClick, UIPanelScrollBarScrollDownButton_OnClick, ScrollFrame_OnLoad = HybridScrollFrame_GetOffset, HybridScrollFrame_Update, HybridScrollFrame_OnValueChanged, HybridScrollFrameScrollButton_OnClick, HybridScrollFrameScrollUp_OnLoad, HybridScrollFrameScrollDown_OnLoad, SearchBoxTemplate_OnTextChanged, ScrollFrame_OnVerticalScroll, UIPanelScrollBar_OnValueChanged, UIPanelScrollBarScrollUpButton_OnClick, UIPanelScrollBarScrollDownButton_OnClick, ScrollFrame_OnLoad
 
 
 local WoWClassic, WoWTBC, WoWRetail
@@ -161,21 +162,115 @@ local function DropDownMenuList_OnHide(self)
 end
 
 
+local function DropDownMenuListScrollFrame_OnScrollRangeChanged(self, xrange, yrange)
+	local scrollBar = self.ScrollBar
+	yrange = math.floor(yrange or self:GetVerticalScrollRange())
+	scrollBar:SetMinMaxValues(0, yrange)
+	scrollBar:SetValue(math.min(scrollBar:GetValue(), yrange))
+end
+
+
+local function DropDownMenuListScrollFrame_OnMouseWheel(self, delta)
+	local scrollBar = self.ScrollBar
+	if not scrollBar:IsShown() then return end
+	scrollBar:SetValue(scrollBar:GetValue() - scrollBar:GetHeight() / 2 * delta)
+end
+
+
+local function DropDownMenuListScrollBar_OnMouseWheel(self, delta)
+	self:SetValue(self:GetValue() - self:GetHeight() / 2 * delta)
+end
+
+
+local function DropDownMenuListScrollBar_OnEnter(self)
+	v.DROPDOWNBUTTON:ddCloseMenus(self:GetParent():GetParent().scrollChild.id + 1)
+end
+
+
+local function DropDownMenuListScrollBarControl_OnEnter(self)
+	v.DROPDOWNBUTTON:ddCloseMenus(self:GetParent():GetParent():GetParent().scrollChild.id + 1)
+end
+
+
 local function CreateDropDownMenuList(parent)
 	local menu = CreateFrame("FRAME", nil, parent)
 	menu:Hide()
 	menu:EnableMouse(true)
 	menu:SetClampedToScreen(true)
 	menu:SetFrameStrata("FULLSCREEN_DIALOG")
+	menu:SetScript("OnHide", DropDownMenuList_OnHide)
+
+	menu.scrollFrame = CreateFrame("ScrollFrame", nil, menu)
+	menu.scrollFrame:SetPoint("TOPLEFT", 15, -15)
+	menu.scrollFrame:SetScript("OnScrollRangeChanged", DropDownMenuListScrollFrame_OnScrollRangeChanged)
+	menu.scrollFrame:SetScript("OnVerticalScroll", ScrollFrame_OnVerticalScroll)
+	menu.scrollFrame:SetScript("OnMouseWheel", DropDownMenuListScrollFrame_OnMouseWheel)
+
+	menu.scrollFrame.ScrollBar = CreateFrame("SLIDER", nil, menu.scrollFrame)
+	local scrollBar = menu.scrollFrame.ScrollBar
+	scrollBar:SetSize(20, 0)
+	scrollBar:SetPoint("TOPLEFT", menu.scrollFrame, "TOPRIGHT", 0, -14)
+	scrollBar:SetPoint("BOTTOMLEFT", menu.scrollFrame, "BOTTOMRIGHT", 0, 14)
+	scrollBar:SetScript("OnValueChanged", UIPanelScrollBar_OnValueChanged)
+	scrollBar:SetScript("OnMouseWheel", DropDownMenuListScrollBar_OnMouseWheel)
+	scrollBar:SetScript("OnEnter", DropDownMenuListScrollBar_OnEnter)
+
+	scrollBar:SetThumbTexture("Interface/Buttons/UI-ScrollBar-Knob")
+	scrollBar.ThumbTexture = scrollBar:GetThumbTexture()
+	scrollBar.ThumbTexture:SetBlendMode("ADD")
+	scrollBar.ThumbTexture:SetSize(21, 24)
+	scrollBar.ThumbTexture:SetTexCoord(.125, .825, .125, .825)
+
+	scrollBar.trackBG = scrollBar:CreateTexture(nil, "BACKGROUND")
+	scrollBar.trackBG:SetPoint("TOPLEFT", 1, 0)
+	scrollBar.trackBG:SetPoint("BOTTOMRIGHT")
+	scrollBar.trackBG:SetColorTexture(0, 0, 0, .15)
+
+	scrollBar.ScrollUpButton = CreateFrame("BUTTON", nil, scrollBar)
+	scrollBar.ScrollUpButton:SetSize(18, 16)
+	scrollBar.ScrollUpButton:SetPoint("BOTTOM", scrollBar, "TOP", 1, -2)
+	scrollBar.ScrollUpButton:SetNormalAtlas("UI-ScrollBar-ScrollUpButton-Up")
+	scrollBar.ScrollUpButton:SetPushedAtlas("UI-ScrollBar-ScrollUpButton-Down")
+	scrollBar.ScrollUpButton:SetDisabledAtlas("UI-ScrollBar-ScrollUpButton-Disabled")
+	scrollBar.ScrollUpButton:SetHighlightAtlas("UI-ScrollBar-ScrollUpButton-Highlight")
+	scrollBar.ScrollUpButton:SetScript("OnClick", UIPanelScrollBarScrollUpButton_OnClick)
+	scrollBar.ScrollUpButton:SetScript("OnEnter", DropDownMenuListScrollBarControl_OnEnter)
+
+	scrollBar.ScrollDownButton = CreateFrame("BUTTON", nil, scrollBar)
+	scrollBar.ScrollDownButton:SetSize(18, 16)
+	scrollBar.ScrollDownButton:SetPoint("TOP", scrollBar, "BOTTOM", 1, 1)
+	scrollBar.ScrollDownButton:SetNormalAtlas("UI-ScrollBar-ScrollDownButton-Up")
+	scrollBar.ScrollDownButton:SetPushedAtlas("UI-ScrollBar-ScrollDownButton-Down")
+	scrollBar.ScrollDownButton:SetDisabledAtlas("UI-ScrollBar-ScrollDownButton-Disabled")
+	scrollBar.ScrollDownButton:SetHighlightAtlas("UI-ScrollBar-ScrollDownButton-Highlight")
+	scrollBar.ScrollDownButton:SetScript("OnClick", UIPanelScrollBarScrollDownButton_OnClick)
+	scrollBar.ScrollDownButton:SetScript("OnEnter", DropDownMenuListScrollBarControl_OnEnter)
+
+	ScrollFrame_OnLoad(menu.scrollFrame)
+	menu.scrollChild = CreateFrame("FRAME")
+	menu.scrollChild:SetSize(1, 1)
+	menu.scrollFrame:SetScrollChild(menu.scrollChild)
+
 	menu.styles = {}
 	for name, frameFunc in pairs(menuStyles) do
 		CreateMenuStyle(menu, name, frameFunc)
 	end
-	menu:SetScript("OnHide", DropDownMenuList_OnHide)
 
 	if StartCounting then
 		menu:SetScript("OnEnter", StopCounting)
 		menu:SetScript("OnLeave", StartCounting)
+
+		menu.scrollFrame:HookScript("OnEnter", StopCounting)
+		menu.scrollFrame:HookScript("OnLeave", StartCounting)
+
+		scrollBar:HookScript("OnEnter", StopCounting)
+		scrollBar:HookScript("OnLeave", StartCounting)
+
+		scrollBar.ScrollUpButton:HookScript("OnEnter", StopCounting)
+		scrollBar.ScrollUpButton:HookScript("OnLeave", StartCounting)
+
+		scrollBar.ScrollDownButton:HookScript("OnEnter", StopCounting)
+		scrollBar.ScrollDownButton:HookScript("OnLeave", StartCounting)
 	end
 
 	return menu
@@ -520,7 +615,7 @@ end
 
 
 local function DropDownMenuSearchBox_OnEnter(self)
-	v.DROPDOWNBUTTON:ddCloseMenus(self:GetParent().listScroll.ScrollChild.id + 1)
+	v.DROPDOWNBUTTON:ddCloseMenus(self:GetParent().listScroll.scrollChild.id + 1)
 end
 
 
@@ -533,13 +628,18 @@ local function DropDownMenuSearchBoxClear_OnClick(self)
 end
 
 
+local function DropDownMenuSearchScrollBar_OnMouseWheel(self, delta)
+	self:SetValue(self:GetValue() - self.buttonHeight * delta)
+end
+
+
 local function DropDownMenuSearchScrollBar_OnEnter(self)
-	v.DROPDOWNBUTTON:ddCloseMenus(self:GetParent().ScrollChild.id + 1)
+	v.DROPDOWNBUTTON:ddCloseMenus(self:GetParent().scrollChild.id + 1)
 end
 
 
 local function DropDownMenuSearchScrollBarControl_OnEnter(self)
-	v.DROPDOWNBUTTON:ddCloseMenus(self:GetParent():GetParent().ScrollChild.id + 1)
+	v.DROPDOWNBUTTON:ddCloseMenus(self:GetParent():GetParent().scrollChild.id + 1)
 end
 
 
@@ -897,6 +997,7 @@ local function CreateDropDownMenuSearch(i)
 	scrollBar:SetPoint("TOPLEFT", f.listScroll, "TOPRIGHT", 5, -15)
 	scrollBar:SetPoint("BOTTOMLEFT", f.listScroll, "BOTTOMRIGHT", 5, 15)
 	scrollBar:SetScript("OnValueChanged", HybridScrollFrame_OnValueChanged)
+	scrollBar:SetScript("OnMouseWheel", DropDownMenuSearchScrollBar_OnMouseWheel)
 	scrollBar:SetScript("OnEnter", DropDownMenuSearchScrollBar_OnEnter)
 
 	scrollBar:SetThumbTexture("Interface/Buttons/UI-ScrollBar-Knob")
@@ -989,14 +1090,14 @@ local dropDownMenusList = setmetatable(v.dropDownMenusList, {
 	__index = function(self, key)
 		local frame = CreateDropDownMenuList(key == 1 and UIParent or self[key - 1])
 		if key ~= 1 then
-			frame:SetFrameLevel(self[key - 1]:GetFrameLevel() + 4)
+			frame:SetFrameLevel(self[key - 1]:GetFrameLevel() + 3)
 		end
-		frame.id = key
+		frame.scrollChild.id = key
 		frame.searchFrames = {}
 		frame.buttonsList = setmetatable({}, {
 			__index = function(self, key)
-				local btn = CreateDropDownMenuButton(frame)
-				btn:SetPoint("RIGHT", -15, 0)
+				local btn = CreateDropDownMenuButton(frame.scrollChild)
+				btn:SetPoint("RIGHT")
 				self[key] = btn
 				return btn
 			end,
@@ -1005,6 +1106,19 @@ local dropDownMenusList = setmetatable(v.dropDownMenusList, {
 		return frame
 	end,
 })
+
+
+if not WoWRetail then
+	StartCounting = function()
+		local menu = dropDownMenusList[1]
+		menu.showTimer = UIDROPDOWNMENU_SHOW_TIME
+		menu.isCounting = true
+	end
+
+	StopCounting = function()
+		dropDownMenusList[1].isCounting = nil
+	end
+end
 
 
 local menu1 = dropDownMenusList[1]
@@ -1053,16 +1167,6 @@ if WoWRetail then
 	end)
 else
 	-- CLOSE BY TIMER
-	StartCounting = function()
-		local menu = dropDownMenusList[1]
-		menu.showTimer = UIDROPDOWNMENU_SHOW_TIME
-		menu.isCounting = true
-	end
-
-	StopCounting = function()
-		dropDownMenusList[1].isCounting = nil
-	end
-
 	menu1:SetScript("OnUpdate", function(self, elapsed)
 		if not self.isCounting then return end
 		if self.showTimer < 0 then
@@ -1076,8 +1180,6 @@ else
 		self:Raise()
 		StartCounting()
 	end)
-	menu1:SetScript("OnEnter", StopCounting)
-	menu1:SetScript("OnLeave", StartCounting)
 end
 
 
@@ -1086,8 +1188,9 @@ end
 ---------------------------------------------------
 local function MenuReset(menu)
 	menu.width = 0
-	menu.height = 15
+	menu.height = 0
 	menu.numButtons = 0
+	menu.scrollFrame.ScrollBar:SetValue(0)
 	wipe(menu.searchFrames)
 end
 
@@ -1193,6 +1296,11 @@ function DropDownButtonMixin:ddSetAutoSetText(enabled)
 end
 
 
+function DropDownButtonMixin:ddSetMaxHeight(height)
+	self.maxHeight = height
+end
+
+
 function DropDownButtonMixin:ddSetValue(value)
 	self.menuValue = value
 end
@@ -1229,10 +1337,21 @@ function DropDownButtonMixin:ddToggle(level, value, anchorFrame, xOffset, yOffse
 	MenuReset(menu)
 	self:initialize(level, value)
 
+	if menu.width < 30 then menu.width = 30 end
+	if menu.height < 16 then menu.height = 16 end
+	menu.scrollChild:SetWidth(menu.width)
 	menu.width = menu.width + 30
-	menu.height = menu.height + 15
-	if menu.width < 60 then menu.width = 60 end
-	if menu.height < 46 then menu.height = 46 end
+	menu.height = menu.height + 30
+	local maxHeight = self.maxHeight or UIParent:GetHeight()
+	if menu.height > maxHeight then
+		menu.height = maxHeight
+		menu.width = menu.width + 26
+		menu.scrollFrame:SetPoint("BOTTOMRIGHT", -35, 15)
+		menu.scrollFrame.ScrollBar:Show()
+	else
+		menu.scrollFrame:SetPoint("BOTTOMRIGHT", -15, 15)
+		menu.scrollFrame.ScrollBar:Hide()
+	end
 	menu:SetSize(menu.width, menu.height)
 
 	if anchorFrame == "cursor" then
@@ -1346,11 +1465,11 @@ function DropDownButtonMixin:ddAddButton(info, level)
 	if info.list then
 		if #info.list > 20 then
 			local searchFrame, height = GetDropDownSearchFrame()
-			searchFrame:SetParent(menu)
-			searchFrame:SetFrameLevel(menu:GetFrameLevel())
-			searchFrame:SetPoint("TOPLEFT", 15, -menu.height)
-			searchFrame:SetPoint("RIGHT", -15, 0)
-			searchFrame.listScroll.ScrollChild.id = level
+			searchFrame:SetParent(menu.scrollChild)
+			searchFrame:SetFrameLevel(menu.scrollChild:GetFrameLevel())
+			searchFrame:SetPoint("TOPLEFT", 0, -menu.height)
+			searchFrame:SetPoint("RIGHT")
+			searchFrame.listScroll.scrollChild.id = level
 
 			if info.hideSearch then
 				searchFrame.searchBox:Hide()
@@ -1384,15 +1503,15 @@ function DropDownButtonMixin:ddAddButton(info, level)
 		local frame = info.customFrame
 		if info.OnLoad then info.OnLoad(frame) end
 
-		frame:SetParent(menu)
+		frame:SetParent(menu.scrollChild)
 		frame:ClearAllPoints()
-		frame:SetPoint("TOPLEFT", 15, -menu.height)
+		frame:SetPoint("TOPLEFT", 0, -menu.height)
 
 		width = frame:GetWidth()
 		if menu.width < width then menu.width = width end
 
 		if not info.fixedWidth then
-			frame:SetPoint("RIGHT", -15, 0)
+			frame:SetPoint("RIGHT")
 		end
 		frame:Show()
 
@@ -1540,7 +1659,7 @@ function DropDownButtonMixin:ddAddButton(info, level)
 		btn.UnCheck:SetShown(not btn._checked)
 	end
 
-	btn:SetPoint("TOPLEFT", 15, -menu.height)
+	btn:SetPoint("TOPLEFT", 0, -menu.height)
 	btn:Show()
 
 	menu.height = menu.height + DropDownMenuButtonHeight
