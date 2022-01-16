@@ -3,4 +3,8 @@
 ## Author: sfmict
 ## Notes: Dropdown menu library
 ## Version: @project-version@
+## OptionalDeps: LibStub
+#@no-lib-strip@
+libs\LibStub\LibStub.lua
+#@end-no-lib-strip@
 LibSFDropDown.xml

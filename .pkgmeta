@@ -1,5 +1,10 @@
 package-as: LibSFDropDown
 
+externals:
+	libs/LibStub: https://repos.curseforge.com/wow/libstub/trunk
+
+enable-nolib-creation: yes
+
 manual-changelog:
 	filename: CHANGELOG.md
 	markup-type: markdown

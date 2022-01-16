@@ -1,7 +1,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.4", 1
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.4", 2
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -183,12 +183,12 @@ end
 
 
 local function DropDownMenuListScrollBar_OnEnter(self)
-	v.DROPDOWNBUTTON:ddCloseMenus(self:GetParent():GetParent().scrollChild.id + 1)
+	v.DROPDOWNBUTTON:ddCloseMenus(self.scrollChild.id + 1)
 end
 
 
 local function DropDownMenuListScrollBarControl_OnEnter(self)
-	v.DROPDOWNBUTTON:ddCloseMenus(self:GetParent():GetParent():GetParent().scrollChild.id + 1)
+	v.DROPDOWNBUTTON:ddCloseMenus(self:GetParent().scrollChild.id + 1)
 end
 
 
@@ -250,6 +250,7 @@ local function CreateDropDownMenuList(parent)
 	menu.scrollChild = CreateFrame("FRAME")
 	menu.scrollChild:SetSize(1, 1)
 	menu.scrollFrame:SetScrollChild(menu.scrollChild)
+	scrollBar.scrollChild = menu.scrollChild
 
 	menu.styles = {}
 	for name, frameFunc in pairs(menuStyles) do
@@ -257,8 +258,8 @@ local function CreateDropDownMenuList(parent)
 	end
 
 	if StartCounting then
-		menu:SetScript("OnEnter", StopCounting)
-		menu:SetScript("OnLeave", StartCounting)
+		menu:HookScript("OnEnter", StopCounting)
+		menu:HookScript("OnLeave", StartCounting)
 
 		menu.scrollFrame:HookScript("OnEnter", StopCounting)
 		menu.scrollFrame:HookScript("OnLeave", StartCounting)
@@ -634,12 +635,12 @@ end
 
 
 local function DropDownMenuSearchScrollBar_OnEnter(self)
-	v.DROPDOWNBUTTON:ddCloseMenus(self:GetParent().scrollChild.id + 1)
+	v.DROPDOWNBUTTON:ddCloseMenus(self.scrollChild.id + 1)
 end
 
 
 local function DropDownMenuSearchScrollBarControl_OnEnter(self)
-	v.DROPDOWNBUTTON:ddCloseMenus(self:GetParent():GetParent().scrollChild.id + 1)
+	v.DROPDOWNBUTTON:ddCloseMenus(self:GetParent().scrollChild.id + 1)
 end
 
 
@@ -999,6 +1000,7 @@ local function CreateDropDownMenuSearch(i)
 	scrollBar:SetScript("OnValueChanged", HybridScrollFrame_OnValueChanged)
 	scrollBar:SetScript("OnMouseWheel", DropDownMenuSearchScrollBar_OnMouseWheel)
 	scrollBar:SetScript("OnEnter", DropDownMenuSearchScrollBar_OnEnter)
+	scrollBar.scrollChild = f.listScroll.scrollChild
 
 	scrollBar:SetThumbTexture("Interface/Buttons/UI-ScrollBar-Knob")
 	scrollBar.thumbTexture = scrollBar:GetThumbTexture()
@@ -1762,7 +1764,7 @@ function libMethods:CreateMenuStyle(name, overwrite, frameFunc)
 	end
 	if type(name) == "string" and type(frameFunc) == "function" then
 		if menuStyles[name] then
-			if overwrite and name ~= "backdrop" and name ~= "menuBackdrop" then
+			if overwrite and name ~= "backdrop" and name ~= "menuBackdrop" and name ~= "menu" then
 				for i = 1, #dropDownMenusList do
 					local styles = dropDownMenusList[i].styles
 					styles[name]:Hide()
