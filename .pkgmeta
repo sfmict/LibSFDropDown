@@ -12,3 +12,5 @@ manual-changelog:
 ignore:
 	- README.md
 	- CHANGELOG.md
+	- libs/LibStub/LibStub.toc
+	- libs/LibStub/tests
