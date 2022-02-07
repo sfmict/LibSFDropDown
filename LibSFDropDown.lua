@@ -1764,7 +1764,7 @@ function libMethods:CreateMenuStyle(name, overwrite, frameFunc)
 	end
 	if type(name) == "string" and type(frameFunc) == "function" then
 		if menuStyles[name] then
-			if overwrite and name ~= "backdrop" and name ~= "menuBackdrop" and name ~= "menu" then
+			if overwrite and name ~= "backdrop" and name ~= "menuBackdrop" then
 				for i = 1, #dropDownMenusList do
 					local styles = dropDownMenusList[i].styles
 					styles[name]:Hide()
