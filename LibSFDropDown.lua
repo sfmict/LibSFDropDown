@@ -1,13 +1,13 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.4", 2
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.4", 3
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
 
 
-local math, pairs, rawget, type, wipe = math, pairs, rawget, type, wipe
+local math, next, ipairs, rawget, type, wipe = math, next, ipairs, rawget, type, wipe
 local CreateFrame, GetBindingKey, PlaySound, SOUNDKIT, GameTooltip, GetScreenWidth, UIParent, GetCursorPosition = CreateFrame, GetBindingKey, PlaySound, SOUNDKIT, GameTooltip, GetScreenWidth, UIParent, GetCursorPosition
 local HybridScrollFrame_GetOffset, HybridScrollFrame_Update, HybridScrollFrame_OnValueChanged, HybridScrollFrameScrollButton_OnClick, HybridScrollFrameScrollUp_OnLoad, HybridScrollFrameScrollDown_OnLoad, SearchBoxTemplate_OnTextChanged, ScrollFrame_OnVerticalScroll, UIPanelScrollBar_OnValueChanged, UIPanelScrollBarScrollUpButton_OnClick, UIPanelScrollBarScrollDownButton_OnClick, ScrollFrame_OnLoad = HybridScrollFrame_GetOffset, HybridScrollFrame_Update, HybridScrollFrame_OnValueChanged, HybridScrollFrameScrollButton_OnClick, HybridScrollFrameScrollUp_OnLoad, HybridScrollFrameScrollDown_OnLoad, SearchBoxTemplate_OnTextChanged, ScrollFrame_OnVerticalScroll, UIPanelScrollBar_OnValueChanged, UIPanelScrollBarScrollUpButton_OnClick, UIPanelScrollBarScrollDownButton_OnClick, ScrollFrame_OnLoad
 
@@ -253,7 +253,7 @@ local function CreateDropDownMenuList(parent)
 	scrollBar.scrollChild = menu.scrollChild
 
 	menu.styles = {}
-	for name, frameFunc in pairs(menuStyles) do
+	for name, frameFunc in next, menuStyles do
 		CreateMenuStyle(menu, name, frameFunc)
 	end
 
@@ -750,28 +750,28 @@ function DropDownMenuSearchMixin:refresh()
 				btn:SetText(btn._text)
 				btn.NormalText:Show()
 
-				btn:SetDisabledFontObject(info.isTitle and GameFontNormalSmallLeft or GameFontDisableSmallLeft)
-				btn:SetNormalFontObject(info.fontObject or GameFontHighlightSmallLeft)
-				btn:SetHighlightFontObject(info.fontObject or GameFontHighlightSmallLeft)
+				btn:SetDisabledFontObject(btn.isTitle and GameFontNormalSmallLeft or GameFontDisableSmallLeft)
+				btn:SetNormalFontObject(btn.fontObject or GameFontHighlightSmallLeft)
+				btn:SetHighlightFontObject(btn.fontObject or GameFontHighlightSmallLeft)
 			else
 				btn:SetText("")
 			end
 
-			local disabled = info.disabled
-			if type(disabled) == "function" then disabled = disabled(info) end
-			if disabled or info.isTitle then
+			local disabled = btn.disabled
+			if type(disabled) == "function" then disabled = disabled(btn) end
+			if disabled or btn.isTitle then
 				btn:Disable()
 			else
 				btn:Enable()
 			end
 
 			local textPos = -5
-			if info.hasArrow then
+			if btn.hasArrow then
 				textPos = -12
 			end
-			btn.ExpandArrow:SetShown(info.hasArrow)
+			btn.ExpandArrow:SetShown(btn.hasArrow)
 
-			if info.remove then
+			if btn.remove then
 				btn.removeButton:SetPoint("RIGHT", textPos, 0)
 				textPos = textPos - 17
 				btn.removeButton:Show()
@@ -779,7 +779,7 @@ function DropDownMenuSearchMixin:refresh()
 				btn.removeButton:Hide()
 			end
 
-			if info.order then
+			if btn.order then
 				btn.arrowDownButton:SetPoint("RIGHT", textPos, 0)
 				textPos = textPos - 25
 				btn.arrowDownButton:Show()
@@ -789,14 +789,14 @@ function DropDownMenuSearchMixin:refresh()
 				btn.arrowUpButton:Hide()
 			end
 
-			if info.hasColorSwatch then
+			if btn.hasColorSwatch then
 				if not btn.colorSwatch then
 					btn.colorSwatch = GetColorSwatchFrame()
 					btn.colorSwatch:SetParent(btn)
 				end
 				btn.colorSwatch:SetPoint("RIGHT", textPos, 0)
 				textPos = textPos - 17
-				btn.colorSwatch.color:SetVertexColor(info.r, info.g, info.b)
+				btn.colorSwatch.color:SetVertexColor(btn.r, btn.g, btn.b)
 				btn.colorSwatch:Show()
 				if not btn.func then
 					btn.func = function() btn.colorSwatch:Click() end
@@ -855,7 +855,7 @@ function DropDownMenuSearchMixin:refresh()
 				end
 				btn.NormalText:SetPoint("LEFT", 20 + indent, 0)
 
-				if info.isNotRadio then
+				if btn.isNotRadio then
 					btn.Check:SetTexCoord(0, .5, 0, .5)
 					btn.UnCheck:SetTexCoord(.5, 1, 0, .5)
 				else
@@ -891,80 +891,79 @@ end
 
 function DropDownMenuSearchMixin:addButton(info)
 	local btnInfo = {}
+	local btn = self.listScroll.buttons[1]
 	for i = 1, #dropDownOptions do
 		local opt = dropDownOptions[i]
 		btnInfo[opt] = info[opt]
+		btn[opt] = info[opt]
 	end
 	self.buttons[#self.buttons + 1] = btnInfo
 
-	local btn = self.listScroll.buttons[1]
-	if btn then
-		local width = 50
+	local width = 50
 
-		if info.text then
-			btn:SetText(type(info.text) == "function" and info:text() or info.text)
+	if btn.text then
+		btn:SetText(type(btn.text) == "function" and btn:text() or btn.text)
 
-			if info.isTitle then
-				btn:SetDisabledFontObject(GameFontNormalSmallLeft)
-			else
-				btn:SetDisabledFontObject(GameFontDisableSmallLeft)
-			end
-
-			local disabled = info.disabled
-			if type(disabled) == "function" then disabled = disabled(info) end
-			if disabled or btn.isTitle then
-				btn:Disable()
-			else
-				btn:Enable()
-				btn:SetNormalFontObject(info.fontObject or GameFontHighlightSmallLeft)
-				btn:SetHighlightFontObject(info.fontObject or GameFontHighlightSmallLeft)
-			end
-
-			width = width + btn.NormalText:GetWidth()
+		if btn.isTitle then
+			btn:SetDisabledFontObject(GameFontNormalSmallLeft)
+		else
+			btn:SetDisabledFontObject(GameFontDisableSmallLeft)
 		end
 
-		if info.indent then
-			width = width + info.indent
+		local disabled = btn.disabled
+		if type(disabled) == "function" then disabled = disabled(btn) end
+		if disabled or btn.isTitle then
+			btn:Disable()
+		else
+			btn:Enable()
+			btn:SetNormalFontObject(btn.fontObject or GameFontHighlightSmallLeft)
+			btn:SetHighlightFontObject(btn.fontObject or GameFontHighlightSmallLeft)
 		end
 
-		if info.notCheckable then
-			width = width - 20
-		elseif not info.isNotRadio then
-			local checked = info.checked
-			if type(checked) == "function" then
-				checked = checked(info)
-			elseif v.DROPDOWNBUTTON.dropDownSetText and checked == nil and not info.isNotRadio then
-				checked = info.value == v.DROPDOWNBUTTON.selectedValue
-			end
-			if checked then self.index = #self.buttons end
-		end
+		width = width + btn.NormalText:GetWidth()
+	end
 
-		if info.icon then
-			width = width + (info.iconInfo and info.iconInfo.tSizeX or DropDownMenuButtonHeight) + 2
-		end
+	if btn.indent then
+		width = width + btn.indent
+	end
 
-		local textPos = -7
-		if info.hasArrow then
-			textPos = -12
+	if btn.notCheckable then
+		width = width - 20
+	elseif not btn.isNotRadio then
+		local checked = btn.checked
+		if type(checked) == "function" then
+			checked = checked(btn)
+		elseif v.DROPDOWNBUTTON.dropDownSetText and checked == nil and not btn.isNotRadio then
+			checked = btn.value == v.DROPDOWNBUTTON.selectedValue
 		end
+		if checked then self.index = #self.buttons end
+	end
 
-		if info.remove then
-			textPos = textPos - 17
-		end
+	if btn.icon then
+		width = width + (btn.iconInfo and btn.iconInfo.tSizeX or DropDownMenuButtonHeight) + 2
+	end
 
-		if info.order then
-			textPos = textPos - 25
-		end
+	local textPos = -7
+	if btn.hasArrow then
+		textPos = -12
+	end
 
-		if info.hasColorSwatch then
-			textPos = textPos - 17
-		end
+	if btn.remove then
+		textPos = textPos - 17
+	end
 
-		width = width - (textPos == -7 and 0 or textPos)
+	if btn.order then
+		textPos = textPos - 25
+	end
 
-		if self.width < width then
-			self.width = width
-		end
+	if btn.hasColorSwatch then
+		textPos = textPos - 17
+	end
+
+	width = width - (textPos == -7 and 0 or textPos)
+
+	if self.width < width then
+		self.width = width
 	end
 end
 
@@ -1038,6 +1037,7 @@ local function CreateDropDownMenuSearch(i)
 	if StartCounting then
 		f.searchBox:HookScript("OnEnter", StopCounting)
 		f.searchBox:HookScript("OnLeave", StartCounting)
+
 		f.searchBox.clearButton:HookScript("OnEnter", StopCounting)
 		f.searchBox.clearButton:HookScript("OnLeave", StartCounting)
 
@@ -1059,7 +1059,7 @@ local function CreateDropDownMenuSearch(i)
 
 	f.buttons = {}
 	f.filtredButtons = {}
-	for k, v in pairs(DropDownMenuSearchMixin) do
+	for k, v in next, DropDownMenuSearchMixin do
 		f[k] = v
 	end
 
@@ -1083,6 +1083,13 @@ end
 ---------------------------------------------------
 -- UPDATE OLD VERSION
 ---------------------------------------------------
+if oldminor < 3 then
+	for i = 1, #dropDownSearchFrames do
+		local f = dropDownSearchFrames[i]
+		f.refresh = DropDownMenuSearchMixin.refresh
+		f.addButton = DropDownMenuSearchMixin.addButton
+	end
+end
 
 
 ---------------------------------------------------
@@ -1379,7 +1386,7 @@ function DropDownButtonMixin:ddToggle(level, value, anchorFrame, xOffset, yOffse
 		end
 	end
 
-	for name, frame in pairs(menu.styles) do
+	for name, frame in next, menu.styles do
 		frame:Hide()
 	end
 	local style = v.DROPDOWNBUTTON.displayMode
@@ -1531,35 +1538,35 @@ function DropDownButtonMixin:ddAddButton(info, level)
 		btn[opt] = info[opt]
 	end
 
-	btn._text = info.text
+	btn._text = btn.text
 	if btn._text then
 		if type(btn._text) == "function" then btn._text = btn:_text() end
 		btn:SetText(btn._text)
 		btn.NormalText:Show()
 
-		btn:SetDisabledFontObject(info.isTitle and GameFontNormalSmallLeft or GameFontDisableSmallLeft)
-		btn:SetNormalFontObject(info.fontObject or GameFontHighlightSmallLeft)
-		btn:SetHighlightFontObject(info.fontObject or GameFontHighlightSmallLeft)
+		btn:SetDisabledFontObject(btn.isTitle and GameFontNormalSmallLeft or GameFontDisableSmallLeft)
+		btn:SetNormalFontObject(btn.fontObject or GameFontHighlightSmallLeft)
+		btn:SetHighlightFontObject(btn.fontObject or GameFontHighlightSmallLeft)
 		width = width + btn.NormalText:GetWidth()
 	else
 		btn:SetText("")
 	end
 
-	local disabled = info.disabled
-	if type(disabled) == "function" then disabled = disabled(info) end
-	if disabled or info.isTitle then
+	local disabled = btn.disabled
+	if type(disabled) == "function" then disabled = disabled(btn) end
+	if disabled or btn.isTitle then
 		btn:Disable()
 	else
 		btn:Enable()
 	end
 
 	local textPos = -5
-	if info.hasArrow then
+	if btn.hasArrow then
 		textPos = -12
 	end
-	btn.ExpandArrow:SetShown(info.hasArrow)
+	btn.ExpandArrow:SetShown(btn.hasArrow)
 
-	if info.remove then
+	if btn.remove then
 		btn.removeButton:SetPoint("RIGHT", textPos, 0)
 		textPos = textPos - 17
 		btn.removeButton:Show()
@@ -1567,7 +1574,7 @@ function DropDownButtonMixin:ddAddButton(info, level)
 		btn.removeButton:Hide()
 	end
 
-	if info.order then
+	if btn.order then
 		btn.arrowDownButton:SetPoint("RIGHT", textPos, 0)
 		textPos = textPos - 25
 		btn.arrowDownButton:Show()
@@ -1577,22 +1584,22 @@ function DropDownButtonMixin:ddAddButton(info, level)
 		btn.arrowUpButton:Hide()
 	end
 
-	if info.hasColorSwatch then
+	if btn.hasColorSwatch then
 		btn.colorSwatch = GetColorSwatchFrame()
 		btn.colorSwatch:SetParent(btn)
 		btn.colorSwatch:SetPoint("RIGHT", textPos, 0)
 		textPos = textPos - 17
-		btn.colorSwatch.color:SetVertexColor(info.r, info.g, info.b)
+		btn.colorSwatch.color:SetVertexColor(btn.r, btn.g, btn.b)
 		btn.colorSwatch:Show()
 		if not btn.func then
 			btn.func = function() btn.colorSwatch:Click() end
 		end
 	end
 
-	if info.icon then
-		btn.Icon:SetTexture(info.icon)
-		if info.iconInfo then
-			local iInfo = info.iconInfo
+	if btn.icon then
+		btn.Icon:SetTexture(btn.icon)
+		if btn.iconInfo then
+			local iInfo = btn.iconInfo
 			btn.Icon:SetSize(iInfo.tSizeX or DropDownMenuButtonHeight, iInfo.tSizeY or DropDownMenuButtonHeight)
 			btn.Icon:SetTexCoord(iInfo.tCoordLeft or 0, iInfo.tCoordRight or 1, iInfo.tCoordTop or 0, iInfo.tCoordBottom or 1)
 		else
@@ -1600,7 +1607,7 @@ function DropDownButtonMixin:ddAddButton(info, level)
 			btn.Icon:SetTexCoord(0, 1, 0, 1)
 		end
 
-		if info.iconOnly then
+		if btn.iconOnly then
 			btn.Icon:SetPoint("RIGHT")
 			btn.NormalText:Hide()
 		else
@@ -1617,17 +1624,17 @@ function DropDownButtonMixin:ddAddButton(info, level)
 	width = width + indent - textPos
 
 	btn.NormalText:ClearAllPoints()
-	if info.notCheckable then
+	if btn.notCheckable then
 		btn.Check:Hide()
 		btn.UnCheck:Hide()
-		if info.icon then
+		if btn.icon then
 			btn.Icon:SetPoint("LEFT", indent, 0)
 			indent = indent + btn.Icon:GetWidth() + 2
 		end
 
-		if info.justifyH == "CENTER" then
+		if btn.justifyH == "CENTER" then
 			btn.NormalText:SetPoint("CENTER", (indent + textPos) / 2, 0)
-		elseif info.justifyH == "RIGHT" then
+		elseif btn.justifyH == "RIGHT" then
 			btn.NormalText:SetPoint("RIGHT", textPos, 0)
 		else
 			btn.NormalText:SetPoint("LEFT", indent, 0)
@@ -1635,14 +1642,14 @@ function DropDownButtonMixin:ddAddButton(info, level)
 	else
 		btn.Check:SetPoint("LEFT", indent, 0)
 		btn.UnCheck:SetPoint("LEFT", indent, 0)
-		if info.icon then
+		if btn.icon then
 			btn.Icon:SetPoint("LEFT", 20 + indent, 0)
 			indent = indent + btn.Icon:GetWidth() + 2
 		end
 		btn.NormalText:SetPoint("LEFT", 20 + indent, 0)
 		width = width + 22
 
-		if info.isNotRadio then
+		if btn.isNotRadio then
 			btn.Check:SetTexCoord(0, .5, 0, .5)
 			btn.UnCheck:SetTexCoord(.5, 1, 0, .5)
 		else
@@ -1650,10 +1657,10 @@ function DropDownButtonMixin:ddAddButton(info, level)
 			btn.UnCheck:SetTexCoord(.5, 1, .5, 1)
 		end
 
-		btn._checked = info.checked
+		btn._checked = btn.checked
 		if type(btn._checked) == "function" then
 			btn._checked = btn:_checked()
-		elseif self.dropDownSetText and info.checked == nil and not info.isNotRadio then
+		elseif self.dropDownSetText and btn.checked == nil and not btn.isNotRadio then
 			btn._checked = btn.value == self.selectedValue
 		end
 
@@ -1803,7 +1810,7 @@ end
 
 
 function libMethods:SetMixin(btn)
-	for k, v in pairs(DropDownButtonMixin) do
+	for k, v in next, DropDownButtonMixin do
 		btn[k] = v
 	end
 	return btn
@@ -1844,12 +1851,12 @@ do
 
 
 	local function Enable(self)
-		SetEnabled(self, true)
+		self:SetEnabled(true)
 	end
 
 
 	local function Disable(self)
-		SetEnabled(self, false)
+		self:SetEnabled(false)
 	end
 
 

@@ -1,5 +1,5 @@
 local lsfdd = LibStub("LibSFDropDown-1.4")
-local cur_ver, ver = lsfdd._sv, 1
+local cur_ver, ver = lsfdd._sv, 2
 if cur_ver and cur_ver >= ver then return end
 lsfdd._sv = ver
 local pairs, pcall, IsAddOnLoaded = pairs, pcall, IsAddOnLoaded
@@ -10,8 +10,9 @@ local skins = {
 		local E = ElvUI[1]
 		if E.private.skins.blizzard.misc ~= true then return end
 		local S = E:GetModule('Skins')
+		local m = lsfdd._m.__index
 
-		lsfdd:CreateMenuStyle(name, true, function(parent)
+		lsfdd:CreateMenuStyle(name, nil, function(parent)
 			local f = CreateFrame("FRAME", nil, parent)
 			f:SetTemplate("Transparent")
 			f.isSkinned = true
@@ -36,10 +37,8 @@ local skins = {
 			skinButton(btn)
 		end
 
-		lsfdd.CreateButton = nil
-		local CreateButton = lsfdd.CreateButton
 		function lsfdd:CreateButton(...)
-			local btn = CreateButton(self, ...)
+			local btn = m.CreateButton(self, ...)
 			local status, err = pcall(skinButton, btn)
 			if not status then
 				self.CreateButton = nil
@@ -60,10 +59,8 @@ local skins = {
 			skinStretchButton(btn)
 		end
 
-		lsfdd.CreateStretchButton = nil
-		local CreateStretchButton = lsfdd.CreateStretchButton
 		function lsfdd:CreateStretchButton(...)
-			local btn = CreateStretchButton(self, ...)
+			local btn = m.CreateStretchButton(self, ...)
 			local status, err = pcall(skinStretchButton, btn)
 			if not status then
 				self.CreateStretchButton = nil
@@ -73,7 +70,7 @@ local skins = {
 	end,
 
 	Tukui = function(name)
-		lsfdd:CreateMenuStyle(name, true, function(parent)
+		lsfdd:CreateMenuStyle(name, nil, function(parent)
 			local f = CreateFrame("FRAME", nil, parent)
 			f:StripTextures()
 			f:CreateBackdrop("Default")
@@ -87,7 +84,9 @@ local skins = {
 
 	Aurora = function(name)
 		local Skin = Aurora.Skin
-		lsfdd:CreateMenuStyle(name, true, function(parent)
+		local m = lsfdd._m.__index
+
+		lsfdd:CreateMenuStyle(name, nil, function(parent)
 			local f = CreateFrame("FRAME", nil, parent, "TooltipBackdropTemplate")
 			Skin.TooltipBackdropTemplate(f)
 			f.isSkinned = true
@@ -112,10 +111,8 @@ local skins = {
 			skinButton(btn)
 		end
 
-		lsfdd.CreateButton = nil
-		local CreateButton = lsfdd.CreateButton
 		function lsfdd:CreateButton(...)
-			local btn = CreateButton(self, ...)
+			local btn = m.CreateButton(self, ...)
 			local status, err = pcall(skinButton, btn)
 			if not status then
 				self.CreateButton = nil
@@ -133,10 +130,8 @@ local skins = {
 			skinStretchButton(btn)
 		end
 
-		lsfdd.CreateStretchButton = nil
-		local CreateStretchButton = lsfdd.CreateStretchButton
 		function lsfdd:CreateStretchButton(...)
-			local btn = CreateStretchButton(self, ...)
+			local btn = m.CreateStretchButton(self, ...)
 			local status, err = pcall(skinStretchButton, btn)
 			if not status then
 				self.CreateStretchButton = nil
