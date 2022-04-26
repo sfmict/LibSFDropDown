@@ -1,7 +1,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.4", 3
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.4", 4
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -10,18 +10,6 @@ oldminor = oldminor or 0
 local math, next, ipairs, rawget, type, wipe = math, next, ipairs, rawget, type, wipe
 local CreateFrame, GetBindingKey, PlaySound, SOUNDKIT, GameTooltip, GetScreenWidth, UIParent, GetCursorPosition = CreateFrame, GetBindingKey, PlaySound, SOUNDKIT, GameTooltip, GetScreenWidth, UIParent, GetCursorPosition
 local HybridScrollFrame_GetOffset, HybridScrollFrame_Update, HybridScrollFrame_OnValueChanged, HybridScrollFrameScrollButton_OnClick, HybridScrollFrameScrollUp_OnLoad, HybridScrollFrameScrollDown_OnLoad, SearchBoxTemplate_OnTextChanged, ScrollFrame_OnVerticalScroll, UIPanelScrollBar_OnValueChanged, UIPanelScrollBarScrollUpButton_OnClick, UIPanelScrollBarScrollDownButton_OnClick, ScrollFrame_OnLoad = HybridScrollFrame_GetOffset, HybridScrollFrame_Update, HybridScrollFrame_OnValueChanged, HybridScrollFrameScrollButton_OnClick, HybridScrollFrameScrollUp_OnLoad, HybridScrollFrameScrollDown_OnLoad, SearchBoxTemplate_OnTextChanged, ScrollFrame_OnVerticalScroll, UIPanelScrollBar_OnValueChanged, UIPanelScrollBarScrollUpButton_OnClick, UIPanelScrollBarScrollDownButton_OnClick, ScrollFrame_OnLoad
-
-
-local WoWClassic, WoWTBC, WoWRetail
-local wowversion = select(4, GetBuildInfo())
-if wowversion < 20000 then
-	WoWClassic = true
-elseif wowversion < 90000 then
-	WoWTBC = true
-else
-	WoWRetail = true
-end
-local StartCounting, StopCounting
 
 
 if oldminor < 1 then
@@ -257,23 +245,6 @@ local function CreateDropDownMenuList(parent)
 		CreateMenuStyle(menu, name, frameFunc)
 	end
 
-	if StartCounting then
-		menu:HookScript("OnEnter", StopCounting)
-		menu:HookScript("OnLeave", StartCounting)
-
-		menu.scrollFrame:HookScript("OnEnter", StopCounting)
-		menu.scrollFrame:HookScript("OnLeave", StartCounting)
-
-		scrollBar:HookScript("OnEnter", StopCounting)
-		scrollBar:HookScript("OnLeave", StartCounting)
-
-		scrollBar.ScrollUpButton:HookScript("OnEnter", StopCounting)
-		scrollBar.ScrollUpButton:HookScript("OnLeave", StartCounting)
-
-		scrollBar.ScrollDownButton:HookScript("OnEnter", StopCounting)
-		scrollBar.ScrollDownButton:HookScript("OnLeave", StartCounting)
-	end
-
 	return menu
 end
 
@@ -439,11 +410,6 @@ local function CreateDropDownMenuButton(parent)
 	btn:SetScript("OnDisable", DropDownMenuButton_OnDisable)
 	btn:SetScript("OnEnable", DropDownMenuButton_OnEnable)
 	btn:SetScript("OnHide", DropDownMenuButton_OnHide)
-
-	if StartCounting then
-		btn:HookScript("OnEnter", StopCounting)
-		btn:HookScript("OnLeave", StartCounting)
-	end
 
 	btn.highlight = btn:CreateTexture(nil, "BACKGROUND")
 	btn.highlight:SetTexture("Interface/QuestFrame/UI-QuestTitleHighlight")
@@ -1034,26 +1000,6 @@ local function CreateDropDownMenuSearch(i)
 	scrollBar.DownButton:SetScript("OnEnter", DropDownMenuSearchScrollBarControl_OnEnter)
 	HybridScrollFrameScrollDown_OnLoad(scrollBar.DownButton)
 
-	if StartCounting then
-		f.searchBox:HookScript("OnEnter", StopCounting)
-		f.searchBox:HookScript("OnLeave", StartCounting)
-
-		f.searchBox.clearButton:HookScript("OnEnter", StopCounting)
-		f.searchBox.clearButton:HookScript("OnLeave", StartCounting)
-
-		f.listScroll:HookScript("OnEnter", StopCounting)
-		f.listScroll:HookScript("OnLeave", StartCounting)
-
-		scrollBar:HookScript("OnEnter", StopCounting)
-		scrollBar:HookScript("OnLeave", StartCounting)
-
-		scrollBar.UpButton:HookScript("OnEnter", StopCounting)
-		scrollBar.UpButton:HookScript("OnLeave", StartCounting)
-
-		scrollBar.DownButton:HookScript("OnEnter", StopCounting)
-		scrollBar.DownButton:HookScript("OnLeave", StartCounting)
-	end
-
 	f.listScroll.update = DropDownMenuSearch_Update
 	DropDownScrollFrame_CreateButtons(f.listScroll)
 
@@ -1117,19 +1063,6 @@ local dropDownMenusList = setmetatable(v.dropDownMenusList, {
 })
 
 
-if not WoWRetail then
-	StartCounting = function()
-		local menu = dropDownMenusList[1]
-		menu.showTimer = UIDROPDOWNMENU_SHOW_TIME
-		menu.isCounting = true
-	end
-
-	StopCounting = function()
-		dropDownMenusList[1].isCounting = nil
-	end
-end
-
-
 local menu1 = dropDownMenusList[1]
 -- CLOSE ON ESC
 menu1:SetScript("OnKeyDown", function(self, key)
@@ -1142,54 +1075,41 @@ menu1:SetScript("OnKeyDown", function(self, key)
 end)
 
 
-if WoWRetail then
-	-- CLOSE WHEN CLICK ON A FREE PLACE
-	local function ContainsMouse()
-		for i = 1, #dropDownMenusList do
-			local menu = dropDownMenusList[i]
-			if menu:IsShown() and menu:IsMouseOver() then
-				return true
-			end
+-- CLOSE WHEN CLICK ON A FREE PLACE
+local function ContainsMouse()
+	for i = 1, #dropDownMenusList do
+		local menu = dropDownMenusList[i]
+		if menu:IsShown() and menu:IsMouseOver() then
+			return true
 		end
-		return false
 	end
-
-	local GetMouseFocus = GetMouseFocus
-	local function ContainsFocus()
-		local focus = GetMouseFocus()
-		return focus and focus.LibSFDropDownNoGMEvent
-	end
-
-	menu1:SetScript("OnEvent", function(self, event, button)
-		if (button == "LeftButton" or button == "RightButton")
-		and not (ContainsFocus() or ContainsMouse()) then
-			self:Hide()
-		end
-	end)
-	menu1:SetScript("OnShow", function(self)
-		self:Raise()
-		self:RegisterEvent("GLOBAL_MOUSE_DOWN")
-	end)
-	menu1:SetScript("OnHide", function(self)
-		DropDownMenuList_OnHide(self)
-		self:UnregisterEvent("GLOBAL_MOUSE_DOWN")
-	end)
-else
-	-- CLOSE BY TIMER
-	menu1:SetScript("OnUpdate", function(self, elapsed)
-		if not self.isCounting then return end
-		if self.showTimer < 0 then
-			self:Hide()
-			self.isCounting = nil
-		else
-			self.showTimer = self.showTimer - elapsed
-		end
-	end)
-	menu1:SetScript("OnShow", function(self)
-		self:Raise()
-		StartCounting()
-	end)
+	return false
 end
+
+
+local GetMouseFocus = GetMouseFocus
+local function ContainsFocus()
+	local focus = GetMouseFocus()
+	return focus and focus.LibSFDropDownNoGMEvent
+end
+
+
+menu1:SetScript("OnEvent", function(self, event, button)
+	if (button == "LeftButton" or button == "RightButton")
+	and not (ContainsFocus() or ContainsMouse()) then
+		self:Hide()
+	end
+end)
+menu1:SetScript("OnShow", function(self)
+	self:Raise()
+	self:RegisterEvent("GLOBAL_MOUSE_DOWN")
+end)
+menu1:SetScript("OnHide", function(self)
+	DropDownMenuList_OnHide(self)
+	self:UnregisterEvent("GLOBAL_MOUSE_DOWN")
+end)
+-- fix counting from old revisions
+menu1:SetScript("OnUpdate", nil)
 
 
 ---------------------------------------------------
