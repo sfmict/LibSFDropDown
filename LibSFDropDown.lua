@@ -56,6 +56,7 @@ info.iconInfo = [table] -- A table that looks like {
 	tCoordBottom = [0.0 - 1.0], -- bottom for SetTexCoord func
 	tSizeX = [number], -- texture width
 	tSizeY = [number], -- texture height
+	tWrap = [nil, string] -- horizontal wrapping type from SetTexture function
 }
 info.indent = [number] -- Number of pixels to pad the button on the left side
 info.remove = [function(self)] -- The function that is called when you click the remove button
@@ -772,15 +773,18 @@ function DropDownMenuSearchMixin:refresh()
 			end
 
 			if btn.icon then
-				btn.Icon:SetTexture(btn.icon)
+				local iconWrap
 				if btn.iconInfo then
 					local iInfo = btn.iconInfo
 					btn.Icon:SetSize(btn.iconInfo.tSizeX or DropDownMenuButtonHeight, btn.iconInfo.tSizeY or DropDownMenuButtonHeight)
 					btn.Icon:SetTexCoord(iInfo.tCoordLeft or 0, iInfo.tCoordRight or 1, iInfo.tCoordTop or 0, iInfo.tCoordBottom or 1)
+					btn.Icon:SetHorizTile(iInfo.tWrap and true or false)
+					iconWrap = iInfo.tWrap
 				else
 					btn.Icon:SetSize(DropDownMenuButtonHeight, DropDownMenuButtonHeight)
 					btn.Icon:SetTexCoord(0, 1, 0, 1)
 				end
+				btn.Icon:SetTexture(btn.icon, iconWrap)
 
 				if btn.iconOnly then
 					btn.Icon:SetPoint("RIGHT")
@@ -1531,15 +1535,18 @@ function DropDownButtonMixin:ddAddButton(info, level)
 	end
 
 	if btn.icon then
-		btn.Icon:SetTexture(btn.icon)
+		local iconWrap
 		if btn.iconInfo then
 			local iInfo = btn.iconInfo
 			btn.Icon:SetSize(iInfo.tSizeX or DropDownMenuButtonHeight, iInfo.tSizeY or DropDownMenuButtonHeight)
 			btn.Icon:SetTexCoord(iInfo.tCoordLeft or 0, iInfo.tCoordRight or 1, iInfo.tCoordTop or 0, iInfo.tCoordBottom or 1)
+			btn.Icon:SetHorizTile(iInfo.tWrap and true or false)
+			iconWrap = iInfo.tWrap
 		else
 			btn.Icon:SetSize(DropDownMenuButtonHeight, DropDownMenuButtonHeight)
 			btn.Icon:SetTexCoord(0, 1, 0, 1)
 		end
+		btn.Icon:SetTexture(btn.icon, iconWrap)
 
 		if btn.iconOnly then
 			btn.Icon:SetPoint("RIGHT")
