@@ -784,7 +784,6 @@ function DropDownMenuSearchMixin:refresh()
 
 				if btn.iconOnly then
 					btn.Icon:SetPoint("RIGHT")
-					btn.NormalText:Hide()
 				else
 					btn.Icon:ClearAllPoints()
 				end
@@ -1241,6 +1240,11 @@ function DropDownButtonMixin:ddSetMaxHeight(height)
 end
 
 
+function DropDownButtonMixin:ddSetMinMenuWidth(width)
+	self.minMenuWidth = width
+end
+
+
 function DropDownButtonMixin:ddSetValue(value)
 	self.menuValue = value
 end
@@ -1426,6 +1430,7 @@ function DropDownButtonMixin:ddAddButton(info, level)
 			end
 
 			width = searchFrame:getEntryWidth()
+			menu.width = math.max(menu.width, width, self.minMenuWidth or 0)
 			if menu.width < width then menu.width = width end
 			searchFrame:Show()
 
@@ -1448,7 +1453,7 @@ function DropDownButtonMixin:ddAddButton(info, level)
 		frame:SetPoint("TOPLEFT", 0, -menu.height)
 
 		width = frame:GetWidth()
-		if menu.width < width then menu.width = width end
+		menu.width = math.max(menu.width, width, self.minMenuWidth or 0)
 
 		if not info.fixedWidth then
 			frame:SetPoint("RIGHT")
@@ -1604,7 +1609,7 @@ function DropDownButtonMixin:ddAddButton(info, level)
 	btn:Show()
 
 	menu.height = menu.height + DropDownMenuButtonHeight
-	if menu.width < width then menu.width = width end
+	menu.width = math.max(menu.width, width, self.minMenuWidth or 0)
 end
 
 
