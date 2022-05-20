@@ -1,7 +1,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.4", 4
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.4", 5
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -48,6 +48,7 @@ info.keepShownOnClick = [nil, true] -- Don't hide the dropdownlist after a butto
 info.arg1 = [anything] -- This is the first argument used by info.func
 info.arg2 = [anything] -- This is the second argument used by info.func
 info.icon = [texture] -- An icon for the button
+info.iconOnly = [nil, true] -- Streaches the texture to the width of the button
 info.iconInfo = [table] -- A table that looks like {
 	tCoordLeft = [0.0 - 1.0], -- left for SetTexCoord func
 	tCoordRight = [0.0 - 1.0], -- right for SetTexCoord func
@@ -714,8 +715,6 @@ function DropDownMenuSearchMixin:refresh()
 			if btn._text then
 				if type(btn._text) == "function" then btn._text = btn:_text() end
 				btn:SetText(btn._text)
-				btn.NormalText:Show()
-
 				btn:SetDisabledFontObject(btn.isTitle and GameFontNormalSmallLeft or GameFontDisableSmallLeft)
 				btn:SetNormalFontObject(btn.fontObject or GameFontHighlightSmallLeft)
 				btn:SetHighlightFontObject(btn.fontObject or GameFontHighlightSmallLeft)
@@ -802,7 +801,9 @@ function DropDownMenuSearchMixin:refresh()
 				btn.UnCheck:Hide()
 				if btn.icon then
 					btn.Icon:SetPoint("LEFT", indent, 0)
-					indent = indent + btn.Icon:GetWidth() + 2
+					if not btn.iconOnly then
+						indent = indent + btn.Icon:GetWidth() + 2
+					end
 				end
 
 				if btn.justifyH == "CENTER" then
@@ -817,7 +818,9 @@ function DropDownMenuSearchMixin:refresh()
 				btn.UnCheck:SetPoint("LEFT", indent, 0)
 				if btn.icon then
 					btn.Icon:SetPoint("LEFT", 20 + indent, 0)
-					indent = indent + btn.Icon:GetWidth() + 2
+					if not btn.iconOnly then
+						indent = indent + btn.Icon:GetWidth() + 2
+					end
 				end
 				btn.NormalText:SetPoint("LEFT", 20 + indent, 0)
 
@@ -905,7 +908,7 @@ function DropDownMenuSearchMixin:addButton(info)
 		if checked then self.index = #self.buttons end
 	end
 
-	if btn.icon then
+	if btn.icon and not btn.iconOnly then
 		width = width + (btn.iconInfo and btn.iconInfo.tSizeX or DropDownMenuButtonHeight) + 2
 	end
 
@@ -1133,7 +1136,8 @@ function DropDownButtonMixin:ddSetSelectedValue(value, level, anchorFrame)
 end
 
 
-function DropDownButtonMixin:ddSetSelectedText(text, icon, iconInfo)
+function DropDownButtonMixin:ddSetSelectedText(text, icon, iconInfo, iconOnly, fontObject)
+	self.Text:SetFontObject(fontObject or GameFontHighlightSmall)
 	self.Text:SetText(text)
 	if not self.Icon then return end
 	if icon then
@@ -1146,11 +1150,18 @@ function DropDownButtonMixin:ddSetSelectedText(text, icon, iconInfo)
 			self.Icon:SetSize(DropDownMenuButtonHeight, DropDownMenuButtonHeight)
 			self.Icon:SetTexCoord(0, 1, 0, 1)
 		end
-		self.Text:SetPoint("LEFT", self.Left, "RIGHT", self.Icon:GetWidth() - 2, 2)
-		self.Icon:SetPoint("RIGHT", self.Text, "RIGHT", -math.min(self.Text:GetStringWidth(), self.Text:GetWidth()) - 1, -1)
+		if iconOnly then
+			self.Text:SetPoint("LEFT", self.Left, "RIGHT", 0, 1)
+			self.Icon:SetPoint("LEFT", self.Left, "RIGHT", -2, 1)
+			self.Icon:SetPoint("RIGHT", self.Right, "LEFT", -15, 1)
+		else
+			self.Text:SetPoint("LEFT", self.Left, "RIGHT", self.Icon:GetWidth() - 2, 1)
+			self.Icon:ClearAllPoints()
+			self.Icon:SetPoint("RIGHT", self.Text, "RIGHT", -math.min(self.Text:GetStringWidth(), self.Text:GetWidth()) - 1, 0)
+		end
 	else
 		self.Icon:Hide()
-		self.Text:SetPoint("LEFT", self.Left, "RIGHT", 0, 2)
+		self.Text:SetPoint("LEFT", self.Left, "RIGHT", 0, 1)
 	end
 end
 
@@ -1187,7 +1198,7 @@ function DropDownButtonMixin:ddInitialize(level, value, initFunction)
 
 		if not (btn.notCheckable or btn.isNotRadio) and btn.value == self.selectedValue then
 			local text = type(btn.text) == "function" and btn:text() or btn.text
-			self:ddSetSelectedText(text, btn.icon, btn.iconInfo)
+			self:ddSetSelectedText(text, btn.icon, btn.iconInfo, btn.iconOnly, btn.fontObject)
 		end
 
 		btn:Hide()
@@ -1205,7 +1216,7 @@ function DropDownButtonMixin:ddInitialize(level, value, initFunction)
 
 			if not (btn.notCheckable or btn.isNotRadio) and btn.value == self.selectedValue then
 				local text = type(btn.text) == "function" and btn:text() or btn.text
-				self:ddSetSelectedText(text, btn.icon, btn.iconInfo)
+				self:ddSetSelectedText(text, btn.icon, btn.iconInfo, btn.iconOnly, btn.fontObject)
 				break
 			end
 		end
@@ -1342,7 +1353,7 @@ do
 			btn.UnCheck:SetShown(not btn._checked)
 
 			if setText and btn._checked and not btn.isNotRadio then
-				self:ddSetSelectedText(btn._text, btn.icon, btn.iconInfo)
+				self:ddSetSelectedText(btn._text, btn.icon, btn.iconInfo, btn.iconOnly, btn.fontObject)
 			end
 		end
 	end
@@ -1462,8 +1473,6 @@ function DropDownButtonMixin:ddAddButton(info, level)
 	if btn._text then
 		if type(btn._text) == "function" then btn._text = btn:_text() end
 		btn:SetText(btn._text)
-		btn.NormalText:Show()
-
 		btn:SetDisabledFontObject(btn.isTitle and GameFontNormalSmallLeft or GameFontDisableSmallLeft)
 		btn:SetNormalFontObject(btn.fontObject or GameFontHighlightSmallLeft)
 		btn:SetHighlightFontObject(btn.fontObject or GameFontHighlightSmallLeft)
@@ -1529,7 +1538,6 @@ function DropDownButtonMixin:ddAddButton(info, level)
 
 		if btn.iconOnly then
 			btn.Icon:SetPoint("RIGHT")
-			btn.NormalText:Hide()
 		else
 			btn.Icon:ClearAllPoints()
 			width = width + btn.Icon:GetWidth() + 2
@@ -1549,7 +1557,9 @@ function DropDownButtonMixin:ddAddButton(info, level)
 		btn.UnCheck:Hide()
 		if btn.icon then
 			btn.Icon:SetPoint("LEFT", indent, 0)
-			indent = indent + btn.Icon:GetWidth() + 2
+			if not btn.iconOnly then
+				indent = indent + btn.Icon:GetWidth() + 2
+			end
 		end
 
 		if btn.justifyH == "CENTER" then
@@ -1564,7 +1574,9 @@ function DropDownButtonMixin:ddAddButton(info, level)
 		btn.UnCheck:SetPoint("LEFT", indent, 0)
 		if btn.icon then
 			btn.Icon:SetPoint("LEFT", 20 + indent, 0)
-			indent = indent + btn.Icon:GetWidth() + 2
+			if not btn.iconOnly then
+				indent = indent + btn.Icon:GetWidth() + 2
+			end
 		end
 		btn.NormalText:SetPoint("LEFT", 20 + indent, 0)
 		width = width + 22
