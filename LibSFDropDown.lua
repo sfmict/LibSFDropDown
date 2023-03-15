@@ -2,7 +2,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.4", 6
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.4", 7
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -10,7 +10,7 @@ oldminor = oldminor or 0
 
 local math, next, ipairs, rawget, type, wipe = math, next, ipairs, rawget, type, wipe
 local CreateFrame, GetBindingKey, PlaySound, SOUNDKIT, GameTooltip, GetScreenWidth, UIParent, GetCursorPosition = CreateFrame, GetBindingKey, PlaySound, SOUNDKIT, GameTooltip, GetScreenWidth, UIParent, GetCursorPosition
-local HybridScrollFrame_GetOffset, HybridScrollFrame_Update, HybridScrollFrame_OnValueChanged, HybridScrollFrameScrollButton_OnClick, HybridScrollFrameScrollUp_OnLoad, HybridScrollFrameScrollDown_OnLoad, SearchBoxTemplate_OnTextChanged, ScrollFrame_OnVerticalScroll, UIPanelScrollBar_OnValueChanged, UIPanelScrollBarScrollUpButton_OnClick, UIPanelScrollBarScrollDownButton_OnClick, ScrollFrame_OnLoad = HybridScrollFrame_GetOffset, HybridScrollFrame_Update, HybridScrollFrame_OnValueChanged, HybridScrollFrameScrollButton_OnClick, HybridScrollFrameScrollUp_OnLoad, HybridScrollFrameScrollDown_OnLoad, SearchBoxTemplate_OnTextChanged, ScrollFrame_OnVerticalScroll, UIPanelScrollBar_OnValueChanged, UIPanelScrollBarScrollUpButton_OnClick, UIPanelScrollBarScrollDownButton_OnClick, ScrollFrame_OnLoad
+local HybridScrollFrame_GetOffset, HybridScrollFrame_Update, HybridScrollFrame_OnValueChanged, HybridScrollFrameScrollButton_OnClick, HybridScrollFrameScrollUp_OnLoad, HybridScrollFrameScrollDown_OnLoad, SearchBoxTemplate_OnTextChanged, ScrollFrame_OnVerticalScroll, UIPanelScrollBar_OnValueChanged, UIPanelScrollBarScrollUpButton_OnClick, UIPanelScrollBarScrollDownButton_OnClick = HybridScrollFrame_GetOffset, HybridScrollFrame_Update, HybridScrollFrame_OnValueChanged, HybridScrollFrameScrollButton_OnClick, HybridScrollFrameScrollUp_OnLoad, HybridScrollFrameScrollDown_OnLoad, SearchBoxTemplate_OnTextChanged, ScrollFrame_OnVerticalScroll, UIPanelScrollBar_OnValueChanged, UIPanelScrollBarScrollUpButton_OnClick, UIPanelScrollBarScrollDownButton_OnClick
 
 
 if oldminor < 1 then
@@ -226,6 +226,7 @@ local function CreateDropDownMenuList(parent)
 	scrollBar.ScrollUpButton:SetHighlightAtlas("UI-ScrollBar-ScrollUpButton-Highlight")
 	scrollBar.ScrollUpButton:SetScript("OnClick", UIPanelScrollBarScrollUpButton_OnClick)
 	scrollBar.ScrollUpButton:SetScript("OnEnter", DropDownMenuListScrollBarControl_OnEnter)
+	scrollBar.ScrollUpButton:Disable()
 
 	scrollBar.ScrollDownButton = CreateFrame("BUTTON", nil, scrollBar)
 	scrollBar.ScrollDownButton:SetSize(18, 16)
@@ -237,7 +238,6 @@ local function CreateDropDownMenuList(parent)
 	scrollBar.ScrollDownButton:SetScript("OnClick", UIPanelScrollBarScrollDownButton_OnClick)
 	scrollBar.ScrollDownButton:SetScript("OnEnter", DropDownMenuListScrollBarControl_OnEnter)
 
-	ScrollFrame_OnLoad(menu.scrollFrame)
 	menu.scrollChild = CreateFrame("FRAME")
 	menu.scrollChild:SetSize(1, 1)
 	menu.scrollFrame:SetScrollChild(menu.scrollChild)
