@@ -6,7 +6,6 @@ externals:
 enable-nolib-creation: yes
 
 ignore:
-	- README.md
-	- CHANGELOG.md
-	- libs/LibStub/LibStub.toc
+	- .*\.md$
+	- libs/.*\.toc$
 	- libs/LibStub/tests
