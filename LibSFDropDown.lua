@@ -2,14 +2,14 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.4", 7
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.4", 8
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
 
 
 local math, next, ipairs, rawget, type, wipe = math, next, ipairs, rawget, type, wipe
-local CreateFrame, GetBindingKey, PlaySound, SOUNDKIT, GameTooltip, GetScreenWidth, UIParent, GetCursorPosition = CreateFrame, GetBindingKey, PlaySound, SOUNDKIT, GameTooltip, GetScreenWidth, UIParent, GetCursorPosition
+local CreateFrame, GetBindingKey, PlaySound, SOUNDKIT, GameTooltip, GetScreenWidth, UIParent, GetCursorPosition, InCombatLockdown = CreateFrame, GetBindingKey, PlaySound, SOUNDKIT, GameTooltip, GetScreenWidth, UIParent, GetCursorPosition, InCombatLockdown
 local HybridScrollFrame_GetOffset, HybridScrollFrame_Update, HybridScrollFrame_OnValueChanged, HybridScrollFrameScrollButton_OnClick, HybridScrollFrameScrollUp_OnLoad, HybridScrollFrameScrollDown_OnLoad, SearchBoxTemplate_OnTextChanged, ScrollFrame_OnVerticalScroll, UIPanelScrollBar_OnValueChanged, UIPanelScrollBarScrollUpButton_OnClick, UIPanelScrollBarScrollDownButton_OnClick = HybridScrollFrame_GetOffset, HybridScrollFrame_Update, HybridScrollFrame_OnValueChanged, HybridScrollFrameScrollButton_OnClick, HybridScrollFrameScrollUp_OnLoad, HybridScrollFrameScrollDown_OnLoad, SearchBoxTemplate_OnTextChanged, ScrollFrame_OnVerticalScroll, UIPanelScrollBar_OnValueChanged, UIPanelScrollBarScrollUpButton_OnClick, UIPanelScrollBarScrollDownButton_OnClick
 
 
@@ -1102,17 +1102,26 @@ end
 
 
 menu1:SetScript("OnEvent", function(self, event, button)
-	if (button == "LeftButton" or button == "RightButton")
+	if event == "PLAYER_REGEN_DISABLED" then
+		self:EnableKeyboard(false)
+	elseif event == "PLAYER_REGEN_ENABLED" then
+		self:EnableKeyboard(true)
+	elseif (button == "LeftButton" or button == "RightButton")
 	and not (ContainsFocus() or ContainsMouse()) then
 		self:Hide()
 	end
 end)
 menu1:SetScript("OnShow", function(self)
 	self:Raise()
+	self:EnableKeyboard(not InCombatLockdown())
+	self:RegisterEvent("PLAYER_REGEN_DISABLED")
+	self:RegisterEvent("PLAYER_REGEN_ENABLED")
 	self:RegisterEvent("GLOBAL_MOUSE_DOWN")
 end)
 menu1:SetScript("OnHide", function(self)
 	DropDownMenuList_OnHide(self)
+	self:UnregisterEvent("PLAYER_REGEN_DISABLED")
+	self:UnregisterEvent("PLAYER_REGEN_ENABLED")
 	self:UnregisterEvent("GLOBAL_MOUSE_DOWN")
 end)
 -- fix counting from old revisions
