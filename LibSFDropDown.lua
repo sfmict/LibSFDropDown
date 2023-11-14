@@ -2,7 +2,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.4", 8
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.4", 9
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -1259,6 +1259,11 @@ function DropDownButtonMixin:ddSetMinMenuWidth(width)
 end
 
 
+function DropDownButtonMixin:ddSetOpenMenuUp(enabled)
+	self.openMenuUp = enabled
+end
+
+
 function DropDownButtonMixin:ddSetValue(value)
 	self.menuValue = value
 end
@@ -1325,14 +1330,22 @@ function DropDownButtonMixin:ddToggle(level, value, anchorFrame, xOffset, yOffse
 		yOffset = 3
 	end
 
+	menu:ClearAllPoints()
 	if level == 1 then
-		menu:SetPoint("TOPLEFT", anchorFrame, "BOTTOMLEFT", xOffset, yOffset)
+		local point, relativePoint = "TOPLEFT", "BOTTOMLEFT"
+		if self.openMenuUp then point, relativePoint = relativePoint, point end
+		menu:SetPoint(point, anchorFrame, relativePoint, xOffset, yOffset)
 	else
-		if GetScreenWidth() - anchorFrame:GetRight() - 2 < menu.width then
-			menu:SetPoint("TOPRIGHT", anchorFrame, "TOPLEFT", -2, 14)
+		local point, relativePoint, y
+		if self.openMenuUp then
+			point, relativePoint, y = "BOTTOMLEFT", "BOTTOMRIGHT", -14
 		else
-			menu:SetPoint("TOPLEFT", anchorFrame, "TOPRIGHT", 2, 14)
+			point, relativePoint, y = "TOPLEFT", "TOPRIGHT", 14
 		end
+		if GetScreenWidth() - anchorFrame:GetRight() - 2 < menu.width then
+			point, relativePoint = relativePoint, point
+		end
+		menu:SetPoint(point, anchorFrame, relativePoint, -2, y)
 	end
 
 	for name, frame in next, menu.styles do
@@ -1402,8 +1415,17 @@ do
 end
 
 
+function DropDownButtonMixin:ddIsMenuShown(level)
+	if self == v.DROPDOWNBUTTON then
+		local menu = lib:GetMenu(level)
+		if menu then return menu:IsShown() end
+	end
+	return false
+end
+
+
 function DropDownButtonMixin:ddCloseMenus(level)
-	local menu = rawget(dropDownMenusList, level or 1)
+	local menu = lib:GetMenu(level)
 	if menu then menu:Hide() end
 end
 
@@ -1688,13 +1710,18 @@ end
 local libMethods = lib._m.__index
 
 
+function libMethods:GetMenu(level)
+	return rawget(dropDownMenusList, level or 1)
+end
+
+
 function libMethods:IterateMenus()
 	return ipairs(dropDownMenusList)
 end
 
 
 function libMethods:IterateMenuButtons(level)
-	local menu = rawget(dropDownMenusList, level or 1)
+	local menu = self:GetMenu(level)
 	if menu then
 		return ipairs(menu.buttonsList)
 	else
