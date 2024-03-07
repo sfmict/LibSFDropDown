@@ -12,6 +12,6 @@ info.OnLeave = [function(self, arg1, arg2)] -- Handler OnLeave
 
 ### Usage:
 
-`local lsfdd = LibStub("LibSFDropDown-1.4")`
+`local lsfdd = LibStub("LibSFDropDown-1.5")`
 
 [API Documentation](https://github.com/sfmict/LibSFDropDown/wiki)
