@@ -36,14 +36,14 @@ end
 --[[
 List of button attributes
 ====================================================================================================
-info.text = [string, function(self)] -- The text of the button or function that returns the text
+info.text = [string, function(self, arg1, arg2)] -- The text of the button or function that returns the text
 info.value = [anything] -- The value that is set to button.value
 info.func = [function(self, arg1, arg2, checked)] -- The function that is called when you click the button
 info.checked = [nil, true, function(self, arg1, arg2)] -- Check the button if true or function returns true
 info.isNotRadio = [nil, true] -- Check the button uses radial image if false check box image if true
 info.notCheckable = [nil, true] -- Shrink the size of the buttons and don't display a check box
 info.isTitle = [nil, true] -- If it's a title the button is disabled and the font color is set to yellow
-info.disabled = [nil, true, function(self)] -- Disable the button and show an invisible button that still traps the mouseover event so menu doesn't time out
+info.disabled = [nil, true, function(self, arg1, arg2)] -- Disable the button and show an invisible button that still traps the mouseover event so menu doesn't time out
 info.hasArrow = [nil, true] -- Show the expand arrow for multilevel menus
 info.hasArrowUp = [nil, true] -- The same as info.hasArrow but opens the menu up
 info.keepShownOnClick = [nil, true] -- Don't hide the dropdownlist after a button is clicked
@@ -735,7 +735,7 @@ local function DropDownMenuSearchButtonInit(btn, info)
 	end
 
 	local disabled = btn.disabled
-	if type(disabled) == "function" then disabled = disabled(btn) end
+	if type(disabled) == "function" then disabled = disabled(btn, btn.arg1, btn.arg2) end
 	if disabled or btn.isTitle then
 		btn:Disable()
 	else
@@ -976,7 +976,7 @@ function DropDownMenuSearchMixin:addButton(info)
 
 	if btn.text then
 		local disabled = btn.disabled
-		if type(disabled) == "function" then disabled = disabled(btn) end
+		if type(disabled) == "function" then disabled = disabled(btn, btn.arg1, btn.arg2) end
 		if disabled or btn.isTitle then
 			btn:Disable()
 		else
@@ -1439,7 +1439,7 @@ end
 do
 	local function RefreshButton(self, btn, setText)
 		if type(btn.disabled) == "function" then
-			btn:SetEnabled(not btn:disabled())
+			btn:SetEnabled(not btn:disabled(btn.arg1, btn.arg2))
 		end
 
 		if type(btn.text) == "function" then
@@ -1535,8 +1535,6 @@ function DropDownButtonMixin:ddAddButton(info, level)
 
 	if info.customFrame then
 		local frame = info.customFrame
-		if info.OnLoad then info.OnLoad(frame) end
-
 		frame:SetParent(menu.scrollChild)
 		frame:ClearAllPoints()
 		frame:SetPoint("TOPLEFT", 0, -menu.height)
@@ -1548,6 +1546,7 @@ function DropDownButtonMixin:ddAddButton(info, level)
 			frame:SetPoint("RIGHT")
 		end
 		frame:Show()
+		if info.OnLoad then info.OnLoad(frame) end
 
 		menu.customFrames = menu.customFrames or {}
 		menu.customFrames[#menu.customFrames + 1] = frame
@@ -1564,7 +1563,7 @@ function DropDownButtonMixin:ddAddButton(info, level)
 	end
 
 	local disabled = btn.disabled
-	if type(disabled) == "function" then disabled = disabled(btn) end
+	if type(disabled) == "function" then disabled = disabled(btn, btn.arg1, btn.arg2) end
 	if disabled or btn.isTitle then
 		btn:Disable()
 	else

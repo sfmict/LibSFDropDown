@@ -161,6 +161,10 @@ do
 
 	local function initFunc(self)
 		local info = {list = {}}
+		local iconInfo = {
+			tSizeX = 0,
+			tSizeY = 14,
+		}
 		local fontObject = getLangFontObject()
 		local statusbars = self.media:HashTable("statusbar")
 		for i, name in ipairs(self.media:List("statusbar")) do
@@ -170,10 +174,7 @@ do
 				fontObject = fontObject,
 				icon = statusbars[name],
 				iconOnly = true,
-				iconInfo = {
-					tSizeX = 0,
-					tSizeY = 14,
-				},
+				iconInfo = iconInfo,
 				arg1 = self,
 				func = media_setSelected,
 			}
