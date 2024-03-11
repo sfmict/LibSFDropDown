@@ -2,7 +2,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 1
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 2
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -50,7 +50,7 @@ info.keepShownOnClick = [nil, true] -- Don't hide the dropdownlist after a butto
 info.arg1 = [anything] -- This is the first argument used by info.func
 info.arg2 = [anything] -- This is the second argument used by info.func
 info.icon = [texture] -- An icon for the button
-info.iconOnly = [nil, true] -- Streaches the texture to the width of the button
+info.iconOnly = [nil, true] -- Stretches the texture to the width of the button
 info.iconInfo = [nil, table] -- A table that looks like {
 	tCoordLeft = [0.0 - 1.0], -- left for SetTexCoord func
 	tCoordRight = [0.0 - 1.0], -- right for SetTexCoord func
@@ -569,7 +569,6 @@ end
 
 
 function v.widgetAlpha(alpha)
-	if not v.widgetFrames then return end
 	for i = 1, #v.widgetFrames do
 		local frame = v.widgetFrames[i]
 		if frame:IsShown() then
@@ -1776,7 +1775,7 @@ end
 function libMethods:IterateSearchFrameButtons(num)
 	local searchFrame = dropDownSearchFrames[num]
 	if searchFrame then
-		return ipairs(searchFrame.listScroll.buttons)
+		return ipairs(searchFrame.view:GetFrames())
 	else
 		error("SearchFrame number "..num.." dosn't exist.")
 	end
