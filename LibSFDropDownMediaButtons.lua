@@ -1,4 +1,7 @@
 local lsfdd = LibStub("LibSFDropDown-1.5")
+local cur_ver, ver = lsfdd._mbv, 1
+if cur_ver and cur_ver >= ver then return end
+lsfdd._mbv = ver
 local menu1 = lsfdd:GetMenu(1)
 local libMethods = lsfdd._m.__index
 
