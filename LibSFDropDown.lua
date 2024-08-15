@@ -2,7 +2,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 7
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 8
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -30,6 +30,11 @@ if oldminor < 1 then
 		__index = {},
 	}
 	setmetatable(lib, lib._m)
+end
+
+if oldminor < 8 then
+	lib._v.dropDownButtonMixin = {}
+	lib._v.dropDownButtonProxy = {}
 end
 
 local DropDownMenuButtonHeight = 16
@@ -1015,7 +1020,7 @@ function DropDownMenuSearchMixin:addButton(info)
 		elseif v.DROPDOWNBUTTON.ddAutoSetText and checked == nil then
 			checked = btn.value == v.DROPDOWNBUTTON:ddGetSelectedValue()
 		end
-		if checked ~= 2 then self.index = #self.buttons end
+		if checked and checked ~= 2 then self.index = #self.buttons end
 	end
 
 	if btn.icon and not btn.iconOnly then
@@ -1210,7 +1215,7 @@ local function MenuReset(menu)
 end
 
 
-local DropDownButtonMixin = {}
+local DropDownButtonMixin = v.dropDownButtonMixin
 
 
 function DropDownButtonMixin:ddSetSelectedValue(value, level, anchorFrame)
@@ -1751,6 +1756,12 @@ function DropDownButtonMixin:ddEasyMenu(menuList, anchorFrame, xOffset, yOffset,
 end
 
 
+-- SET PROXY
+for funcName in next, DropDownButtonMixin do
+	v.dropDownButtonProxy[funcName] = function(...) return DropDownButtonMixin[funcName](...) end
+end
+
+
 ---------------------------------------------------
 -- LIBRARY METHODS
 ---------------------------------------------------
@@ -1838,7 +1849,7 @@ end
 
 
 function libMethods:SetMixin(btn)
-	for k, v in next, DropDownButtonMixin do
+	for k, v in next, self._v.dropDownButtonProxy do
 		btn[k] = v
 	end
 	return btn
@@ -2067,12 +2078,22 @@ if oldminor < 7 then
 			if not btn.GroupCheck then v.dropDownMenuButtonInit(btn) end
 		end
 	end
+end
 
+
+if oldminor < 8 then
 	for i = 1, #v.dropDownCreatedButtons do
 		lib:SetMixin(v.dropDownCreatedButtons[i])
 	end
 
 	for i = 1, #v.dropDownCreatedStretchButtons do
 		lib:SetMixin(v.dropDownCreatedStretchButtons[i])
+	end
+
+	for i = 1, #dropDownSearchFrames do
+		local f = dropDownSearchFrames[i]
+		for k, v in next, DropDownMenuSearchMixin do
+			f[k] = v
+		end
 	end
 end
