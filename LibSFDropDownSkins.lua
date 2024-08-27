@@ -30,7 +30,7 @@ local skins = {
 			btn.backdrop:Point("TOPLEFT", 3, 1)
 			btn.backdrop:Point("BOTTOMRIGHT", 1, 2)
 			btn.Button.SetPoint = E.noop
-			S:HandleNextPrevButton(btn.Button, 'down')
+			S:HandleNextPrevButton(btn.Button, 'down', nil, true)
 			btn.isSkinned = true
 		end
 
