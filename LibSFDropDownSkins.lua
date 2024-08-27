@@ -1,5 +1,5 @@
 local lsfdd = LibStub("LibSFDropDown-1.5")
-local cur_ver, ver = lsfdd._sv, 3
+local cur_ver, ver = lsfdd._sv, 4
 if cur_ver and cur_ver >= ver then return end
 lsfdd._sv = ver
 local pairs, pcall = pairs, pcall
