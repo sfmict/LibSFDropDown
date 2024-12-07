@@ -2,7 +2,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 12
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 13
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -184,8 +184,7 @@ function v.createMenuStyle(menu, name, frameFunc)
 end
 
 
-function v.setIcon(texture, icon, info)
-	local menuButtonHeight = v.DROPDOWNBUTTON.ddMenuButtonHeight or v.dropDownMenuButtonHeight
+function v.setIcon(texture, icon, info, menuButtonHeight)
 	local iconWrap
 	if info then
 		texture:SetSize(info.tSizeX or menuButtonHeight, info.tSizeY or menuButtonHeight)
@@ -609,18 +608,18 @@ end})
 
 function v.widgetInit(parent)
 	local position = parent.widgetPosition
-	local height = v.DROPDOWNBUTTON.ddMenuButtonHeight or v.dropDownMenuButtonHeight
+	local menuButtonHeight = v.DROPDOWNBUTTON.ddMenuButtonHeight or v.dropDownMenuButtonHeight
 	for i = 1, #parent.widgets do
 		local info = parent.widgets[i]
 		local btn = v.widgetFrames[i]
 		btn:SetParent(parent)
-		btn:SetSize(info.width or height, info.height or height)
+		btn:SetSize(info.width or menuButtonHeight, info.height or menuButtonHeight)
 		btn:SetPoint("RIGHT", position, 0)
 		btn.OnClick = info.OnClick
 		btn.OnEnter = info.OnEnter
 		btn.OnLeave = info.OnLeave
 		btn.OnTooltipShow = info.OnTooltipShow
-		v.setIcon(btn.icon, info.icon, info.iconInfo)
+		v.setIcon(btn.icon, info.icon, info.iconInfo, menuButtonHeight)
 		btn:Show()
 		position = position - btn:GetWidth()
 	end
@@ -825,11 +824,11 @@ local function DropDownMenuSearchButtonInit(btn, info)
 		textPos = textPos - 25
 	end
 
+	local menuButtonHeight = v.DROPDOWNBUTTON.ddMenuButtonHeight or v.dropDownMenuButtonHeight
 	if btn.widgets then
 		btn.widgetPosition = textPos
-		local height = v.DROPDOWNBUTTON.ddMenuButtonHeight or v.dropDownMenuButtonHeight
 		for i = 1, #btn.widgets do
-			textPos = textPos - (btn.widgets[i].width or height)
+			textPos = textPos - (btn.widgets[i].width or menuButtonHeight)
 		end
 	end
 
@@ -851,7 +850,7 @@ local function DropDownMenuSearchButtonInit(btn, info)
 	end
 
 	if btn.icon then
-		v.setIcon(btn.Icon, btn.icon, btn.iconInfo)
+		v.setIcon(btn.Icon, btn.icon, btn.iconInfo, menuButtonHeight)
 
 		if btn.iconOnly then
 			btn.Icon:SetPoint("RIGHT")
@@ -1287,7 +1286,7 @@ function DropDownButtonMixin:ddSetSelectedText(text, icon, iconInfo, iconOnly, f
 	if not self.Icon then return end
 	if icon then
 		self.Icon:Show()
-		v.setIcon(self.Icon, icon, iconInfo)
+		v.setIcon(self.Icon, icon, iconInfo, 16)
 
 		if iconOnly then
 			self.Text:SetPoint("LEFT", self.Left, "RIGHT", 0, 1)
@@ -1680,7 +1679,7 @@ function DropDownButtonMixin:ddAddButton(info, level)
 	end
 
 	if btn.icon then
-		v.setIcon(btn.Icon, btn.icon, btn.iconInfo)
+		v.setIcon(btn.Icon, btn.icon, btn.iconInfo, menuButtonHeight)
 
 		if btn.iconOnly then
 			btn.Icon:SetPoint("RIGHT")
@@ -2235,5 +2234,12 @@ if oldminor < 12 then
 		for j, btn in ipairs(f.view:GetFrames()) do
 			btn:SetScript("OnClick", DropDownMenuButton_OnClick)
 		end
+	end
+end
+
+if oldminor < 13 then
+	for i = 1, #dropDownSearchFrames do
+		local f = dropDownSearchFrames[i]
+		f.view:SetElementInitializer("BUTTON", DropDownMenuSearchButtonInit)
 	end
 end
