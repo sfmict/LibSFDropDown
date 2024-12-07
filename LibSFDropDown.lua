@@ -67,7 +67,11 @@ info.iconInfo = [nil, table] -- A table that looks like {
 	tCoordBottom = [0.0 - 1.0], -- bottom for SetTexCoord func
 	tSizeX = [number], -- texture width
 	tSizeY = [number], -- texture height
-	tWrap = [nil, string] -- horizontal wrapping type from SetTexture function
+	tWrap = [nil, string]. -- horizontal wrapping type from SetTexture function
+	r = [0.0 - 1.0], -- r for SetVertexColor func
+	g = [0.0 - 1.0], -- g for SetVertexColor func
+	b = [0.0 - 1.0], -- b for SetVertexColor func
+	a = [0.0 - 1.0], -- a for SetVertexColor func
 }
 info.indent = [number] -- Number of pixels to pad the button on the left side
 info.remove = [function(self, arg1, arg2)] -- The function that is called when you click the remove button
@@ -182,11 +186,13 @@ function v.setIcon(texture, icon, info)
 	if info then
 		texture:SetSize(info.tSizeX or DropDownMenuButtonHeight, info.tSizeY or DropDownMenuButtonHeight)
 		texture:SetTexCoord(info.tCoordLeft or 0, info.tCoordRight or 1, info.tCoordTop or 0, info.tCoordBottom or 1)
+		texture:SetVertexColor(info.r or 1, info.g or 1, info.b or 1, info.a or 1)
 		texture:SetHorizTile(info.tWrap and true or false)
 		iconWrap = info.tWrap
 	else
 		texture:SetSize(DropDownMenuButtonHeight, DropDownMenuButtonHeight)
 		texture:SetTexCoord(0, 1, 0, 1)
+		texture:SetVertexColor(1, 1, 1, 1)
 		texture:SetHorizTile(false)
 	end
 	texture:SetTexture(icon, iconWrap)
