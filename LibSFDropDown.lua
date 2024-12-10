@@ -2,7 +2,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 13
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 14
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -1998,6 +1998,14 @@ do
 		btn.Text:SetPoint("RIGHT", btn.Right, "LEFT", -17, 2)
 
 		btn.Icon = btn:CreateTexture(nil, "ARTWORK")
+
+		btn.Mask = btn:CreateMaskTexture()
+		btn.Mask:SetTexture("interface/masks/squaremask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+		btn.Mask:SetPoint("LEFT", 0, 1)
+		btn.Mask:SetPoint("RIGHT", 0, 1)
+		btn.Mask:SetHeight(16)
+
+		btn.Icon:AddMaskTexture(btn.Mask)
 
 		btn.Button = CreateFrame("BUTTON", nil, btn)
 		btn.Button:SetMotionScriptsWhileDisabled(true)

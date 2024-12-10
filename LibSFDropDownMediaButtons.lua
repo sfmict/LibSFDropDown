@@ -1,5 +1,5 @@
 local lsfdd = LibStub("LibSFDropDown-1.5")
-local cur_ver, ver = lsfdd._mbv, 4
+local cur_ver, ver = lsfdd._mbv, 5
 if cur_ver and cur_ver >= ver then return end
 lsfdd._mbv = ver
 local menu1 = lsfdd:GetMenu(1)
@@ -153,7 +153,7 @@ do
 		local info = {list = {}}
 		local iconInfo = {
 			tSizeX = 0,
-			tSizeY = 14,
+			tSizeY = lsfdd._v.dropDownMenuButtonHeight - 2,
 		}
 		local statusbars = self.media:HashTable("statusbar")
 		for i, name in ipairs(self.media:List("statusbar")) do
