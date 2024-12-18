@@ -2,7 +2,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 15
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 16
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -2251,14 +2251,11 @@ end
 if oldminor < 5 then
 	for i = 1, #dropDownSearchFrames do
 		local f = dropDownSearchFrames[i]
-		f.view:SetElementInitializer("BUTTON", DropDownMenuSearchButtonInit)
-		f.addButton = DropDownMenuSearchMixin.addButton
 
 		for callbackType, callbackTable in pairs(f.view:GetCallbackTables()) do
 			local callbacks = callbackTable[f.view.Event.OnAcquiredFrame]
 			if callbacks then wipe(callbacks) end
 		end
-		f.view:RegisterCallback(f.view.Event.OnAcquiredFrame, DropDownMenuSearchButton_OnAcquired, f)
 	end
 end
 
@@ -2284,8 +2281,6 @@ if oldminor < 7 then
 
 	for i = 1, #dropDownSearchFrames do
 		local f = dropDownSearchFrames[i]
-		f.view:SetElementInitializer("BUTTON", DropDownMenuSearchButtonInit)
-		f.view:RegisterCallback(f.view.Event.OnAcquiredFrame, DropDownMenuSearchButton_OnAcquired, f)
 
 		for i, btn in ipairs(f.view:GetFrames()) do
 			if not btn.GroupCheck then v.dropDownMenuButtonInit(btn) end
@@ -2300,13 +2295,6 @@ if oldminor < 8 then
 
 	for i = 1, #v.dropDownCreatedStretchButtons do
 		lib:SetMixin(v.dropDownCreatedStretchButtons[i])
-	end
-
-	for i = 1, #dropDownSearchFrames do
-		local f = dropDownSearchFrames[i]
-		for k, v in next, DropDownMenuSearchMixin do
-			f[k] = v
-		end
 	end
 end
 
@@ -2366,7 +2354,6 @@ if oldminor < 10 then
 
 	for i = 1, #dropDownSearchFrames do
 		local f = dropDownSearchFrames[i]
-		f.view:SetElementInitializer("BUTTON", DropDownMenuSearchButtonInit)
 		for j, btn in ipairs(f.view:GetFrames()) do
 			updateButton(btn)
 		end
@@ -2383,7 +2370,6 @@ if oldminor < 12 then
 
 	for i = 1, #dropDownSearchFrames do
 		local f = dropDownSearchFrames[i]
-		f.view:SetElementInitializer("BUTTON", DropDownMenuSearchButtonInit)
 		for k, v in next, DropDownMenuSearchMixin do
 			f[k] = v
 		end
@@ -2406,5 +2392,12 @@ if oldminor < 15 then
 	for i = 1, #dropDownSearchFrames do
 		local f = dropDownSearchFrames[i]
 		f.view:RegisterCallback(f.view.Event.OnAcquiredFrame, DropDownMenuSearchButton_OnAcquired, f)
+	end
+end
+
+if oldminor < 16 then
+	for i = 1, #dropDownSearchFrames do
+		local f = dropDownSearchFrames[i]
+		f.buttonsList = f.buttonsList or {}
 	end
 end
