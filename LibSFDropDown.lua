@@ -2,7 +2,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 16
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 17
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -331,6 +331,7 @@ local function CreateDropDownMenuList(parent)
 	for name, frameFunc in next, menuStyles do
 		v.createMenuStyle(menu, name, frameFunc)
 	end
+	menu.activeStyle = menu.styles[v.defaultStyle]
 
 	return menu
 end
@@ -855,8 +856,10 @@ local function DropDownMenuSearchButtonInit(btn, info)
 		v.setIcon(btn.Icon, btn.icon, btn.iconInfo, menuButtonHeight)
 
 		if btn.iconOnly then
+			btn.Icon:SetDrawLayer("BACKGROUND")
 			btn.Icon:SetPoint("RIGHT")
 		else
+			btn.Icon:SetDrawLayer("ARTWORK")
 			btn.Icon:ClearAllPoints()
 		end
 		btn.Icon:Show()
@@ -1505,15 +1508,13 @@ function DropDownButtonMixin:ddToggle(level, value, anchorFrame, xOffset, yOffse
 		menu:SetPoint(point, anchorFrame, relativePoint, 0, y)
 	end
 
-	if menu.activeStyle then
-		menu.activeStyle:Hide()
-	end
 	local style = v.DROPDOWNBUTTON.ddDisplayMode
 	if style == "menu" then
 		style = v.menuStyle
 	elseif not menu.styles[style] then
 		style = v.defaultStyle
 	end
+	menu.activeStyle:Hide()
 	menu.activeStyle = menu.styles[style]
 	menu.activeStyle:Show()
 end
@@ -1705,8 +1706,10 @@ function DropDownButtonMixin:ddAddButton(info, level)
 		v.setIcon(btn.Icon, btn.icon, btn.iconInfo, menuButtonHeight)
 
 		if btn.iconOnly then
+			btn.Icon:SetDrawLayer("BACKGROUND")
 			btn.Icon:SetPoint("RIGHT")
 		else
+			btn.Icon:SetDrawLayer("ARTWORK")
 			btn.Icon:ClearAllPoints()
 			width = width + btn.Icon:GetWidth() + 2
 		end
@@ -2379,13 +2382,6 @@ if oldminor < 12 then
 	end
 end
 
-if oldminor < 13 then
-	for i = 1, #dropDownSearchFrames do
-		local f = dropDownSearchFrames[i]
-		f.view:SetElementInitializer("BUTTON", DropDownMenuSearchButtonInit)
-	end
-end
-
 if oldminor < 15 then
 	v.dropDownCreatedModernButtons = {}
 
@@ -2399,5 +2395,19 @@ if oldminor < 16 then
 	for i = 1, #dropDownSearchFrames do
 		local f = dropDownSearchFrames[i]
 		f.buttonsList = f.buttonsList or {}
+	end
+end
+
+if oldminor < 17 then
+	for i = 1, #v.dropDownMenusList do
+		local menu = v.dropDownMenusList[i]
+		if not menu.activeStyle then
+			menu.activeStyle = menu.styles[v.defaultStyle]
+		end
+	end
+
+	for i = 1, #dropDownSearchFrames do
+		local f = dropDownSearchFrames[i]
+		f.view:SetElementInitializer("BUTTON", DropDownMenuSearchButtonInit)
 	end
 end
