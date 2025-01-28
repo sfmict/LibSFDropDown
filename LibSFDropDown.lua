@@ -1444,7 +1444,7 @@ function DropDownButtonMixin:ddHideWhenButtonHidden(frame)
 end
 
 
-function DropDownButtonMixin:ddToggle(level, value, anchorFrame, xOffset, yOffset)
+function DropDownButtonMixin:ddToggle(level, value, anchorFrame, point, rPoint, xOffset, yOffset)
 	if not level then level = 1 end
 	local menu = dropDownMenusList[level]
 
@@ -1479,6 +1479,17 @@ function DropDownButtonMixin:ddToggle(level, value, anchorFrame, xOffset, yOffse
 	end
 	menu:SetSize(menu.width, menu.height)
 
+	if type(point) == "number" then
+		xOffset = point
+		yOffset = rPoint
+		point = nil
+		rPoint = nil
+	elseif type(rPoint) == "number" then
+		yOffset = xOffset
+		xOffset = rPoint
+		rPoint = point
+	end
+
 	if anchorFrame == "cursor" then
 		anchorFrame = UIParent
 		local x, y = GetCursorPosition()
@@ -1486,26 +1497,26 @@ function DropDownButtonMixin:ddToggle(level, value, anchorFrame, xOffset, yOffse
 		xOffset = (xOffset or 0) + x / scale
 		yOffset = (yOffset or 0) + y / scale
 		if self:ddIsOpenMenuUp() then yOffset = yOffset - UIParent:GetHeight() end
-	elseif not xOffset or not yOffset then
-		xOffset = 0
-		yOffset = 0
 	end
 
 	if level == 1 then
-		local point, relativePoint = "TOPLEFT", "BOTTOMLEFT"
-		if self:ddIsOpenMenuUp() then point, relativePoint = relativePoint, point end
-		menu:SetPoint(point, anchorFrame, relativePoint, xOffset, yOffset)
+		if not point then
+			point, rPoint = "TOPLEFT", "BOTTOMLEFT"
+			if self:ddIsOpenMenuUp() then point, rPoint = rPoint, point end
+		end
+		menu:SetPoint(point, anchorFrame, rPoint or point, xOffset or 0, yOffset or 0)
 	else
-		local point, relativePoint, y
-		if anchorFrame.hasArrowUp then
-			point, relativePoint, y = "BOTTOMLEFT", "BOTTOMRIGHT", -14
-		else
-			point, relativePoint, y = "TOPLEFT", "TOPRIGHT", 14
+		if not point then
+			if anchorFrame.hasArrowUp then
+				point, rPoint = "BOTTOMLEFT", "BOTTOMRIGHT"
+			else
+				point, rPoint = "TOPLEFT", "TOPRIGHT"
+			end
 		end
 		if GetScreenWidth() - anchorFrame:GetRight() - 2 < menu.width then
-			point, relativePoint = relativePoint, point
+			point, rPoint = rPoint, point
 		end
-		menu:SetPoint(point, anchorFrame, relativePoint, 0, y)
+		menu:SetPoint(point, anchorFrame, rPoint or point, xOffset or 0, yOffset or anchorFrame.hasArrowUp and -15 or 15)
 	end
 
 	local style = v.DROPDOWNBUTTON.ddDisplayMode
