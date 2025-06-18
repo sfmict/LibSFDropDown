@@ -2,7 +2,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 20
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 21
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -1522,7 +1522,7 @@ function DropDownButtonMixin:ddToggle(level, value, anchorFrame, point, rPoint, 
 	MenuReset(menu)
 	self:ddInitializeFunc(level, value)
 
-	menu.width = math.max(menu.width, self.ddMinMenuWidth or 0)
+	menu.width = math.max(menu.width, self.ddMinMenuWidth or v.dropDownMenuButtonHeight)
 	menu.height = math.max(menu.height, self.ddMenuButtonHeight or v.dropDownMenuButtonHeight)
 	menu.scrollChild:SetWidth(menu.width)
 	menu.width = menu.width + 30
