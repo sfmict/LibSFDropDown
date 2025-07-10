@@ -2,7 +2,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 23
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 24
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -1056,7 +1056,10 @@ do
 		return text:lower():find(str, 1, true)
 	end
 	local function search(str, text, rightText)
-		return text and find(text, str) or rightText and find(rightText, str)
+		return #str == 0
+		    or not (text or rightText)
+		    or text and find(text, str)
+		    or rightText and find(rightText, str)
 	end
 
 	function DropDownMenuSearchMixin:updateFilters()
@@ -1068,10 +1071,7 @@ do
 			local info = self.buttons[i]
 			local infoText = type(info.text) == "function" and info:text(info.arg1, info.arg2) or info.text
 			local infoRightText = type(info.rightText) == "function" and info:rightText(info.arg1, info.arg2) or info.rightText
-			if #text == 0
-			or not infoText and not infoRightText
-			or search(text, infoText, infoRightText, info)
-			then
+			if search(text, infoText, infoRightText, info) then
 				self.dataProvider:Insert(info)
 			end
 		end
@@ -2494,7 +2494,7 @@ if oldminor < 19 then
 	end
 end
 
-if oldminor < 23 then
+if oldminor < 24 then
 	for i = 1, #dropDownSearchFrames do
 		local f = dropDownSearchFrames[i]
 		f.buttonsList = nil
