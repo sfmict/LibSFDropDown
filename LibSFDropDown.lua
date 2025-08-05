@@ -2,7 +2,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 24
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 25
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -846,10 +846,11 @@ local function DropDownMenuSearchButtonInit(btn, info)
 	end
 
 	local textPos = -5
-	if btn.hasArrow then
+	local hasArrow = btn.hasArrow or btn.hasArrowUp
+	if hasArrow then
 		textPos = -12
 	end
-	btn.ExpandArrow:SetShown(btn.hasArrow)
+	btn.ExpandArrow:SetShown(hasArrow)
 
 	if btn.hasColorSwatch then
 		if not btn.colorSwatch then
@@ -1143,7 +1144,7 @@ function DropDownMenuSearchMixin:addButton(info)
 	end
 
 	local textPos = -7
-	if btn.hasArrow then
+	if btn.hasArrow or btn.hasArrowUp then
 		textPos = -12
 	end
 
@@ -1738,10 +1739,11 @@ function DropDownButtonMixin:ddAddButton(info, level)
 	end
 
 	local textPos = -5
-	if btn.hasArrow then
+	local hasArrow = btn.hasArrow or btn.hasArrowUp
+	if hasArrow then
 		textPos = -12
 	end
-	btn.ExpandArrow:SetShown(btn.hasArrow)
+	btn.ExpandArrow:SetShown(hasArrow)
 
 	if btn.hasColorSwatch then
 		btn.colorSwatch = GetColorSwatchFrame()
@@ -2326,8 +2328,7 @@ end
 if oldminor == 0 then return end
 
 if oldminor < 4 then
-	for i = 1, #v.dropDownMenusList do
-		local menu = v.dropDownMenusList[i]
+	for i, menu in lib:IterateMenus() do
 		menu.scrollFrame:SetScript("OnVerticalScroll", DropDownMenuListScrollFrame_OnVerticalScroll)
 		menu.scrollFrame:SetScript("OnScrollRangeChanged", DropDownMenuListScrollFrame_OnScrollRangeChanged)
 		menu.scrollFrame:SetScript("OnMouseWheel", DropDownMenuListScrollFrame_OnMouseWheel)
@@ -2335,9 +2336,7 @@ if oldminor < 4 then
 end
 
 if oldminor < 5 then
-	for i = 1, #dropDownSearchFrames do
-		local f = dropDownSearchFrames[i]
-
+	for i, f in lib:IterateSearchFrames() do
 		for callbackType, callbackTable in pairs(f.view:GetCallbackTables()) do
 			local callbacks = callbackTable[f.view.Event.OnAcquiredFrame]
 			if callbacks then wipe(callbacks) end
@@ -2353,9 +2352,7 @@ if oldminor < 7 then
 		btn.GroupCheck:SetPoint("CENTER", btn.UnCheck)
 	end
 
-	for i = 1, #v.dropDownMenusList do
-		local menu = v.dropDownMenusList[i]
-
+	for i, menu in lib:IterateMenus() do
 		setmetatable(menu.buttonsList, {
 			__index = function(self, key)
 				local btn = CreateFrame("BUTTON", nil, menu.scrollChild)
@@ -2366,16 +2363,13 @@ if oldminor < 7 then
 			end,
 		})
 
-		for j = 1, #menu.buttonsList do
-			local btn = menu.buttonsList[j]
+		for j, btn in lib:IterateMenuButtons(i) do
 			if not btn.GroupCheck then updateBtn(btn) end
 		end
 	end
 
-	for i = 1, #dropDownSearchFrames do
-		local f = dropDownSearchFrames[i]
-
-		for i, btn in ipairs({f.scrollBox:GetScrollTarget():GetChildren()}) do
+	for i in lib:IterateSearchFrames() do
+		for j, btn in lib:IterateSearchFrameButtons(i) do
 			if not btn.GroupCheck then updateBtn(btn) end
 		end
 	end
@@ -2396,8 +2390,7 @@ if oldminor < 9 then
 		v.menuStyle = "modernMenu"
 	end
 
-	for i = 1, #v.dropDownMenusList do
-		local menu = v.dropDownMenusList[i]
+	for i, menu in lib:IterateMenus() do
 		if not menu:IsShown() then
 			for _, style in next, menu.styles do
 				style:Hide()
@@ -2406,13 +2399,13 @@ if oldminor < 9 then
 		if not menu.styles.modernMenu and v.menuStyles.modernMenu then
 			v.createMenuStyle(menu, "modernMenu", v.menuStyles.modernMenu)
 		end
-		for j = 1, #menu.buttonsList do
-			menu.buttonsList[j]:SetScript("OnEnter", DropDownMenuButton_OnEnter)
+		for j, btn in lib:IterateMenuButtons(i) do
+			btn:SetScript("OnEnter", DropDownMenuButton_OnEnter)
 		end
 	end
 
-	for i = 1, #dropDownSearchFrames do
-		for j, btn in ipairs({dropDownSearchFrames[i].scrollBox:GetScrollTarget():GetChildren()}) do
+	for i in lib:IterateSearchFrames() do
+		for j, btn in lib:IterateSearchFrameButtons(i) do
 			btn:SetScript("OnEnter", DropDownMenuButton_OnEnter)
 		end
 	end
@@ -2438,35 +2431,28 @@ if oldminor < 10 then
 		btn.GroupCheck:SetPoint("CENTER", btn.UnCheck)
 	end
 
-	for i = 1, #v.dropDownMenusList do
-		local buttonsList = v.dropDownMenusList[i].buttonsList
-		for j = 1, #buttonsList do
-			updateButton(buttonsList[j])
+	for i in lib:IterateMenus() do
+		for j, btn in lib:IterateMenuButtons(i) do
+			updateButton(btn)
 		end
 	end
 
-	for i = 1, #dropDownSearchFrames do
-		local f = dropDownSearchFrames[i]
-		for j, btn in ipairs({f.scrollBox:GetScrollTarget():GetChildren()}) do
+	for i in lib:IterateSearchFrames() do
+		for j, btn in lib:IterateSearchFrameButtons(i) do
 			updateButton(btn)
 		end
 	end
 end
 
 if oldminor < 12 then
-	for i = 1, #v.dropDownMenusList do
-		local buttonsList = v.dropDownMenusList[i].buttonsList
-		for j = 1, #buttonsList do
-			buttonsList[j]:SetScript("OnClick", DropDownMenuButton_OnClick)
+	for i in lib:IterateMenus() do
+		for j, btn in lib:IterateMenuButtons(i) do
+			btn:SetScript("OnClick", DropDownMenuButton_OnClick)
 		end
 	end
 
-	for i = 1, #dropDownSearchFrames do
-		local f = dropDownSearchFrames[i]
-		for k, v in next, DropDownMenuSearchMixin do
-			f[k] = v
-		end
-		for j, btn in ipairs({f.scrollBox:GetScrollTarget():GetChildren()}) do
+	for i in lib:IterateSearchFrames() do
+		for j, btn in lib:IterateSearchFrameButtons(i) do
 			btn:SetScript("OnClick", DropDownMenuButton_OnClick)
 		end
 	end
@@ -2477,29 +2463,23 @@ if oldminor < 15 then
 end
 
 if oldminor < 17 then
-	for i = 1, #v.dropDownMenusList do
-		local menu = v.dropDownMenusList[i]
+	for i, menu in lib:IterateMenus() do
 		if not menu.activeStyle then
 			menu.activeStyle = menu.styles[v.defaultStyle]
 		end
 	end
 end
 
-if oldminor < 19 then
-	for i = 1, #dropDownSearchFrames do
-		local f = dropDownSearchFrames[i]
-		f.addButton = DropDownMenuSearchMixin.addButton
-		f.updateFilters = DropDownMenuSearchMixin.updateFilters
-		f.view:SetElementInitializer("BUTTON", DropDownMenuSearchButtonInit)
+if oldminor < 24 then
+	for i, f in lib:IterateSearchFrames() do
+		f.buttonsList = nil
+		f.view:RegisterCallback(f.view.Event.OnAcquiredFrame, DropDownMenuSearchButton_OnAcquired, f)
 	end
 end
 
-if oldminor < 24 then
-	for i = 1, #dropDownSearchFrames do
-		local f = dropDownSearchFrames[i]
-		f.buttonsList = nil
-		f.init = DropDownMenuSearchMixin.init
-		f.updateFilters = dropDownButtonMixin.updateFilters
-		f.view:RegisterCallback(f.view.Event.OnAcquiredFrame, DropDownMenuSearchButton_OnAcquired, f)
+if oldminor < 25 then
+	for i, f in lib:IterateSearchFrames() do
+		for k, v in next, DropDownMenuSearchMixin do f[k] = v end
+		f.view:SetElementInitializer("BUTTON", DropDownMenuSearchButtonInit)
 	end
 end
