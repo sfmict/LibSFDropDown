@@ -2,7 +2,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 27
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 28
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -2471,7 +2471,7 @@ if oldminor < 26 then
 	end
 end
 
-if oldminor < 27 then
+if oldminor < 28 then
 	for i, menu in lib:IterateMenus() do
 		menu.scrollFrame:SetScript("OnVerticalScroll", DropDownMenuListScrollFrame_OnVerticalScroll)
 		menu.scrollFrame:SetScript("OnMouseWheel", DropDownMenuListScrollFrame_OnMouseWheel)
@@ -2496,11 +2496,11 @@ if oldminor < 27 then
 	for i, f in lib:IterateSearchFrames() do
 		f.scrollBox:RegisterCallback(f.scrollBox.Event.OnScroll, DropDownMenuScrollBox_OnScroll, f)
 
-		f.scrollBar:GetScript("OnEnter", nil)
-		f.scrollBar.Back:GetScript("OnEnter", MinimalScrollBarStepperScriptsMixin.OnEnter)
-		f.scrollBar.Forward:GetScript("OnEnter", MinimalScrollBarStepperScriptsMixin.OnEnter)
-		f.scrollBar.Track:GetScript("OnEnter", nil)
-		f.scrollBar.Track.Thumb:GetScript("OnEnter", MinimalScrollBarThumbScriptsMixin.OnEnter)
+		f.scrollBar:SetScript("OnEnter", nil)
+		f.scrollBar.Back:SetScript("OnEnter", MinimalScrollBarStepperScriptsMixin.OnEnter)
+		f.scrollBar.Forward:SetScript("OnEnter", MinimalScrollBarStepperScriptsMixin.OnEnter)
+		f.scrollBar.Track:SetScript("OnEnter", nil)
+		f.scrollBar.Track.Thumb:SetScript("OnEnter", MinimalScrollBarThumbScriptsMixin.OnEnter)
 
 		for j, btn in lib:IterateSearchFrameButtons(i) do
 			btn:SetScript("OnEnter", DropDownMenuButton_OnEnter)
