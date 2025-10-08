@@ -135,7 +135,7 @@ info.OnLoad = [function(customFrame)] -- Function called when the custom frame i
 info.search = [function(searchString, infoText, infoRightText, btnInfo)] -- Optional custom search function, must return true/false
 info.hideSearch = [nil, true] -- Remove SearchBox if info.list displays as scroll menu
 info.listMaxSize = [number] -- Number of max size info.list, after a scroll frame is added
-info.list = [table] -- The table of info buttons, if there are more than 20 (default) buttons, a scroll frame is added. Available attributes in table "dropDonwOptions".
+info.list = [table] -- The table of info buttons, if there are more than 20 (default) buttons, a scroll frame is added. Available attributes in table "dropDownOptions".
 ]]
 v.dropDownOptions = {
 	"text",
