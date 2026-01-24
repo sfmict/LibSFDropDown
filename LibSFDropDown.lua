@@ -2,15 +2,16 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 31
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 32
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
 
 
 local math, next, ipairs, rawget, type, wipe = math, next, ipairs, rawget, type, wipe
-local CreateFrame, GetBindingKey, PlaySound, SOUNDKIT, GameTooltip, GetScreenWidth, UIParent, GetCursorPosition, InCombatLockdown = CreateFrame, GetBindingKey, PlaySound, SOUNDKIT, GameTooltip, GetScreenWidth, UIParent, GetCursorPosition, InCombatLockdown
+local CreateFrame, CreateFont, GetBindingKey, PlaySound, SOUNDKIT, GameTooltip, GetScreenWidth, UIParent, GetCursorPosition, InCombatLockdown = CreateFrame, CreateFont, GetBindingKey, PlaySound, SOUNDKIT, GameTooltip, GetScreenWidth, UIParent, GetCursorPosition, InCombatLockdown
 local SearchBoxTemplate_OnTextChanged, CreateScrollBoxListLinearView, ScrollBoxConstants, ScrollUtil, CreateDataProvider, GetAtlasInfo = SearchBoxTemplate_OnTextChanged, CreateScrollBoxListLinearView, ScrollBoxConstants, ScrollUtil, CreateDataProvider, C_Texture.GetAtlasInfo
+local GameFontHighlightLeft, GameFontNormalLeft, GameFontDisableLeft, GameFontHighlightRight, GameFontHighlightSmall, GameFontHighlight = GameFontHighlightLeft, GameFontNormalLeft, GameFontDisableLeft, GameFontHighlightRight, GameFontHighlightSmall, GameFontHighlight
 
 if oldminor < 1 then
 	lib._v = {
@@ -246,9 +247,9 @@ end
 function v.getFontObject(self, font, fontObject)
 	if not self._fontObject then
 		self._fontObject = CreateFont(v.getNextWidgetName("font"))
-		self._fontObject:CopyFontObject(GameFontHighlightLeft)
 	end
-	local _, size, outline = (fontObject or GameFontHighlightLeft):GetFont()
+	self._fontObject:CopyFontObject(fontObject or GameFontHighlightLeft)
+	local _, size, outline = self._fontObject:GetFont()
 	self._fontObject:SetFont(font, size, outline)
 	return self._fontObject
 end
