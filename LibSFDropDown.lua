@@ -2,7 +2,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 32
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 33
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -1060,8 +1060,8 @@ do
 		wipe(colorMap)
 
 		while true do
-			local colorStart, colorEnd = text:find(colorPattern, lastPos)
-			local resetStart, resetEnd = text:find(resetPattern, lastPos)
+			local colorStart, colorEnd = text:find(colorPattern)
+			local resetStart, resetEnd = text:find(resetPattern)
 			local nextStart = math.min(
 				colorStart and colorEnd - colorStart == colorLen and colorStart or math.huge,
 				resetStart and resetEnd - resetStart == resetLen and resetStart or math.huge
@@ -1070,10 +1070,11 @@ do
 			if nextStart == math.huge then break end
 
 			if nextStart == colorStart then
-				colorMap[colorStart] = text:sub(colorStart, colorEnd)
+				local color = text:sub(colorStart, colorEnd)
+				colorMap[colorStart] = colorMap[colorStart] and colorMap[colorStart]..color or color
 				text = text:sub(0, colorStart - 1)..text:sub(colorEnd + 1)
 			else
-				colorMap[resetStart] = colorReset
+				colorMap[resetStart] = colorMap[resetStart] and colorMap[resetStart]..colorReset or colorReset
 				text = text:sub(0, resetStart - 1)..text:sub(resetEnd + 1)
 			end
 		end
@@ -1089,15 +1090,7 @@ do
 			local segment = colorMap[i]
 			if segment ~= nil then
 				colorMap[i] = nil
-				if segment == colorReset then
-					if #movableColors > 1 then
-						movableColors[#movableColors] = nil
-					else
-						hColor = colorReset..hColor
-					end
-				else
-					movableColors[#movableColors + 1] = segment
-				end
+				movableColors[#movableColors + 1] = segment
 			end
 		end
 
@@ -2577,7 +2570,7 @@ if oldminor < 28 then
 	end
 end
 
-if oldminor < 30 then
+if oldminor < 33 then
 	for i, f in lib:IterateSearchFrames() do
 		for k, v in next, DropDownMenuSearchMixin do f[k] = v end
 		f.buttonsList = nil
