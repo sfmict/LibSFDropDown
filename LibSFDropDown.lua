@@ -2,7 +2,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 33
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 34
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -1057,12 +1057,13 @@ do
 	local movableColors = {}
 
 	local function find(text, str, hColor)
+		local colorStart, colorEnd, resetStart, resetEnd, nextStart, nextEnd, subStr, curStr
 		wipe(colorMap)
 
 		while true do
-			local colorStart, colorEnd = text:find(colorPattern)
-			local resetStart, resetEnd = text:find(resetPattern)
-			local nextStart = math.min(
+			colorStart, colorEnd = text:find(colorPattern)
+			resetStart, resetEnd = text:find(resetPattern)
+			nextStart = math.min(
 				colorStart and colorEnd - colorStart == colorLen and colorStart or math.huge,
 				resetStart and resetEnd - resetStart == resetLen and resetStart or math.huge
 			)
@@ -1070,13 +1071,16 @@ do
 			if nextStart == math.huge then break end
 
 			if nextStart == colorStart then
-				local color = text:sub(colorStart, colorEnd)
-				colorMap[colorStart] = colorMap[colorStart] and colorMap[colorStart]..color or color
-				text = text:sub(0, colorStart - 1)..text:sub(colorEnd + 1)
+				nextEnd = colorEnd
+				subStr = text:sub(colorStart, colorEnd)
 			else
-				colorMap[resetStart] = colorMap[resetStart] and colorMap[resetStart]..colorReset or colorReset
-				text = text:sub(0, resetStart - 1)..text:sub(resetEnd + 1)
+				nextEnd = resetEnd
+				subStr = colorReset
 			end
+
+			curStr = colorMap[nextStart]
+			colorMap[nextStart] = curStr and curStr..subStr or subStr
+			text = text:sub(0, nextStart - 1)..text:sub(nextEnd + 1)
 		end
 
 		local hStart, hEnd = text:lower():find(str, 1, true)
@@ -1086,8 +1090,9 @@ do
 		wipe(movableColors)
 		movableColors[1] = colorReset
 
+		local segment
 		for i = hStart, hEnd do
-			local segment = colorMap[i]
+			segment = colorMap[i]
 			if segment ~= nil then
 				colorMap[i] = nil
 				movableColors[#movableColors + 1] = segment
@@ -1098,7 +1103,7 @@ do
 		colorMap[hEnd] = concat(movableColors)
 
 		for i = #text, 1, -1 do
-			local segment = colorMap[i]
+			segment = colorMap[i]
 			if segment then
 				text = text:sub(0, i - 1)..segment..text:sub(i)
 			end
@@ -1107,7 +1112,7 @@ do
 		return text
 	end
 
-	function search(str, text, rightText, info, hColor)
+	local function search(str, text, rightText, info, hColor)
 		if #str == 0 or not (text or rightText) then return true end
 		local sText = text and find(text, str, hColor)
 		local sRText = rightText and find(rightText, str, hColor)
@@ -2570,7 +2575,7 @@ if oldminor < 28 then
 	end
 end
 
-if oldminor < 33 then
+if oldminor < 34 then
 	for i, f in lib:IterateSearchFrames() do
 		for k, v in next, DropDownMenuSearchMixin do f[k] = v end
 		f.buttonsList = nil
