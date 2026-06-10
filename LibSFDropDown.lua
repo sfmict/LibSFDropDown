@@ -2,7 +2,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 36
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 37
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -332,6 +332,23 @@ local function DropDownMenuListScrollBar_OnScroll(scrollFrame, scrollPercentage)
 end
 
 
+local function Menu_Reset(menu)
+	menu.width = 0
+	menu.height = 0
+	menu.numButtons = 0
+	menu.lastFrame = nil
+	menu:ClearAllPoints()
+	wipe(menu.searchFrames)
+	return menu
+end
+
+
+local function Menu_BtnPoint(menu, btn)
+	btn:SetPoint("TOPLEFT", menu.lastFrame or menu.scrollChild, menu.lastFrame and "BOTTOMLEFT")
+	menu.lastFrame = btn
+end
+
+
 local function CreateDropDownMenuList(parent)
 	local menu = CreateFrame("FRAME", nil, parent)
 	menu:Hide()
@@ -339,6 +356,8 @@ local function CreateDropDownMenuList(parent)
 	menu:SetClampedToScreen(true)
 	menu:SetFrameStrata("FULLSCREEN_DIALOG")
 	menu:SetScript("OnHide", DropDownMenuList_OnHide)
+	menu.reset = Menu_Reset
+	menu.btnPoint = Menu_BtnPoint
 
 	menu.scrollFrame = CreateFrame("ScrollFrame", nil, menu)
 	menu.scrollFrame:SetPoint("TOPLEFT", 15, -15)
@@ -1089,8 +1108,8 @@ end
 function DropDownMenuSearchMixin:init(menu, info)
 	self:SetParent(menu.scrollChild)
 	self:SetFrameLevel(menu.scrollChild:GetFrameLevel())
-	self:SetPoint("TOPLEFT", menu.lastFrame, "BOTTOMLEFT")
 	self:SetPoint("RIGHT")
+	menu:btnPoint(self)
 	self.scrollBox:GetScrollTarget().id = menu.scrollChild.id
 
 	self.menu = menu
@@ -1257,13 +1276,13 @@ do
 		self.scrollBox:SetDataProvider(self.dataProvider, ScrollBoxConstants.RetainScrollPosition)
 		self.doNotHide = nil
 
-		local height = self.menuButtonHeight * math.min(self.maxSize, self.dataProvider:GetSize())
+		local height = self.menuButtonHeight * math.min(self.maxSize, size)
 		self.scrollBox:SetHeight(height)
 		self:SetHeight(height + self.hOffset)
 
 		local top = self.menu.scrollChild:GetTop()
 		if top then
-			self.menu:SetHeight(top and (top - self.menu.lastFrame:GetBottom() + 30) or self.menu.height)
+			self.menu:SetHeight(top - self.menu.lastFrame:GetBottom() + 30)
 		end
 	end
 end
@@ -1509,16 +1528,6 @@ end)
 ---------------------------------------------------
 -- DROPDOWN TOGGLE BUTTON
 ---------------------------------------------------
-local function MenuReset(menu)
-	menu.width = 0
-	menu.height = 0
-	menu.numButtons = 0
-	menu.lastFrame = menu.scrollChild
-	menu:ClearAllPoints()
-	wipe(menu.searchFrames)
-end
-
-
 local DropDownButtonMixin = v.dropDownButtonMixin
 
 
@@ -1596,10 +1605,9 @@ function DropDownButtonMixin:ddInitialize(level, value, initFunction)
 
 	if not self.ddAutoSetText then return end
 	level = level or 1
-	local menu = dropDownMenusList[level]
+	local menu = dropDownMenusList[level]:reset()
 	menu.anchorFrame = self
 	v.DROPDOWNBUTTON = self
-	MenuReset(menu)
 	if level == 1 and value == nil then
 		value = self.ddMenuValue
 	end
@@ -1694,7 +1702,7 @@ end
 
 function DropDownButtonMixin:ddToggle(level, value, anchorFrame, point, rPoint, xOffset, yOffset)
 	if not level then level = 1 end
-	local menu = dropDownMenusList[level]
+	local menu = dropDownMenusList[level]:reset()
 
 	if menu:IsShown() then
 		menu:Hide()
@@ -1707,7 +1715,6 @@ function DropDownButtonMixin:ddToggle(level, value, anchorFrame, point, rPoint, 
 		v.DROPDOWNBUTTON = self
 		if value == nil then value = self.ddMenuValue end
 	end
-	MenuReset(menu)
 	self:ddInitializeFunc(level, value)
 
 	menu.width = math.max(menu.width, self.ddMinMenuWidth or v.dropDownMenuButtonHeight)
@@ -1828,11 +1835,11 @@ function DropDownButtonMixin:ddRefresh(level, anchorFrame)
 	end
 
 	for i = 1, #menu.searchFrames do
-		local searchFrame = menu.searchFrames[i]
-		searchFrame:updateFilters()
-		local f = v[searchFrame.scrollBox:GetScrollTarget().id + 1]
-		if f and f.highlight then f.highlight:Show() end
+		menu.searchFrames[i]:updateFilters()
 	end
+
+	local f = v[menu.scrollChild.id + 1]
+	if f and f.highlight then f.highlight:Show() end
 end
 
 
@@ -1867,7 +1874,6 @@ function DropDownButtonMixin:ddAddButton(info, level)
 			local searchFrame = GetDropDownSearchFrame()
 			local width, height = searchFrame:init(menu, info)
 
-			menu.lastFrame = searchFrame
 			menu.width = math.max(menu.width, width)
 			menu.height = menu.height + height
 
@@ -1884,9 +1890,8 @@ function DropDownButtonMixin:ddAddButton(info, level)
 		local frame = info.customFrame
 		frame:SetParent(menu.scrollChild)
 		frame:ClearAllPoints()
-		frame:SetPoint("TOPLEFT", menu.lastFrame, "BOTTOMLEFT")
 
-		menu.lastFrame = frame
+		menu:btnPoint(frame)
 		menu.width = math.max(menu.width, frame:GetWidth())
 		menu.height = menu.height + frame:GetHeight()
 
@@ -2011,11 +2016,10 @@ function DropDownButtonMixin:ddAddButton(info, level)
 		btn.GroupCheck:SetShown(btn._checked == 2)
 	end
 
-	btn:SetPoint("TOPLEFT", menu.lastFrame, "BOTTOMLEFT")
+	menu:btnPoint(btn)
 	btn:Show()
 
 	menu.height = menu.height + menuButtonHeight
-	menu.lastFrame = btn
 	menu.width = math.max(menu.width, width)
 end
 
@@ -2678,7 +2682,6 @@ if oldminor < 36 then
 	end
 
 	for i, f in lib:IterateSearchFrames() do
-		for k, v in next, DropDownMenuSearchMixin do f[k] = v end
 		f.buttonsList = nil
 		f.hOffset = f.searchBox:IsShown() and 26 or 3
 		f.view:SetElementInitializer("BUTTON", DropDownMenuSearchButtonInit)
@@ -2702,5 +2705,16 @@ if oldminor < 36 then
 			btn:SetScript("OnLeave", DropDownMenuButton_OnLeave)
 			btn:SetScript("OnHide", DropDownMenuButton_OnHide)
 		end
+	end
+end
+
+if oldminor < 37 then
+	for i, menu in lib:IterateMenus() do
+		menu.reset = Menu_Reset
+		menu.btnPoint = Menu_BtnPoint
+	end
+
+	for i, f in lib:IterateSearchFrames() do
+		for k, v in next, DropDownMenuSearchMixin do f[k] = v end
 	end
 end
