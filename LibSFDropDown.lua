@@ -2,7 +2,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 37
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 38
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -112,8 +112,10 @@ info.opacityFunc = [function] -- Function called by the opacity slider when you 
 info.cancelFunc = [function(previousValues)] -- Function called by the colorpicker when you click the cancel button (it takes the previous values as its argument)
 info.justifyH = [nil, "CENTER", "RIGHT"] -- Justify button text
 info.fontObject = [fontObject] -- The font object replacement for Normal and Highlight
+info.disabledFontObject = [fontObject] = The font object replacement for info.disabled
 info.rightFontObject = [fontObject] -- The font object replacement for info.rightText
 info.font = [font] -- The font replacement for Normal and HighLight
+info.disabledFont = [font] -- The font replacement for info.disabled
 info.rightFont = [font] -- The font replacement for info.rightText
 info.OnEnter = [function(self, arg1, arg2)] -- Handler OnEnter
 info.OnLeave = [function(self, arg1, arg2)] -- Handler OnLeave
@@ -141,8 +143,8 @@ info.search = [function(searchString, infoText, infoRightText, btnInfo, highligh
 info.highlightColor = [nil, hex color] -- A color for highlighted found text, default ffd200
 info.hideSearch = [nil, true] -- Remove SearchBox if info.list displays as scroll menu
 info.autoFocus = [nil, true] -- Auto focus SearchBox if it's visible
-info.listMaxSize = [number] -- Number of max size info.list, after a scroll frame is added
-info.searchAlways = [nil, true] -- always displays search, regardless of list size
+info.listMaxSize = [nil, number] -- Number of max size info.list, after a scroll frame is added, default 20
+info.searchAlways = [nil, true] -- Always displays search, regardless of list size
 info.list = [table] -- The table of info buttons, if there are more than 20 (default) buttons, a scroll frame is added. Available attributes in table "dropDownOptions".
 ]]
 v.dropDownOptions = {
@@ -178,8 +180,10 @@ v.dropDownOptions = {
 	"cancelFunc",
 	"justifyH",
 	"fontObject",
+	"disabledFontObject",
 	"rightFontObject",
 	"font",
+	"disabledFont",
 	"rightFont",
 	"OnEnter",
 	"OnLeave",
@@ -254,21 +258,46 @@ function v.getFontObject(self, font, fontObject)
 	if not self._fontObject then
 		self._fontObject = CreateFont(v.getNextWidgetName("font"))
 	end
-	self._fontObject:CopyFontObject(fontObject or GameFontHighlightLeft)
-	local _, size, outline = self._fontObject:GetFont()
-	self._fontObject:SetFont(font, size, outline)
+
+	local base = fontObject or GameFontHighlightLeft
+	if self._lastFont ~= font or self._lastFontObject ~= base then
+		self._lastFont = font
+		self._lastFontObject = base
+
+		self._fontObject:CopyFontObject(base)
+		local _, size, outline = self._fontObject:GetFont()
+		self._fontObject:SetFont(font, size, outline)
+	end
+
 	return self._fontObject
 end
 
 
 function v.setButtonFont(btn)
-	btn:SetDisabledFontObject(btn.isTitle and GameFontNormalLeft or GameFontDisableLeft)
-	local fontObject = btn.fontObject or GameFontHighlightLeft
+	local fontObject = btn.fontObject or btn.isTitle and GameFontNormalLeft or GameFontHighlightLeft
 	if btn.font then
 		fontObject = v.getFontObject(btn.NormalText, btn.font, fontObject)
 	end
-	btn:SetNormalFontObject(fontObject)
-	btn:SetHighlightFontObject(fontObject)
+
+	local disabledFontObject
+	if btn.isTitle then
+		disabledFontObject = fontObject
+	else
+		disabledFontObject = btn.disabledFontObject or GameFontDisableLeft
+		if btn.disabledFont then
+			disabledFontObject = v.getFontObject(btn, btn.disabledFont, disabledFontObject)
+		end
+	end
+
+	if btn._lastNormalFont ~= fontObject then
+		btn._lastNormalFont = fontObject
+		btn:SetNormalFontObject(fontObject)
+		btn:SetHighlightFontObject(fontObject)
+	end
+	if btn._lastDisabledFont ~= disabledFontObject then
+		btn._lastDisabledFont = disabledFontObject
+		btn:SetDisabledFontObject(disabledFontObject)
+	end
 end
 
 
@@ -448,17 +477,17 @@ local function DropDownMenuButton_OnEnterInit(self)
 	end
 	v.frameDummy:SetScript("OnUpdate", DropDonwMenuButton_Delayed)
 
-	if self.remove then
+	if self.remove and self:IsEnabled() then
 		v.removeButton:SetAlpha(1)
 	end
 
-	if self.order then
+	if self.order and self:IsEnabled() then
 		v.arrowDownButton:SetAlpha(1)
 		v.arrowUpButton:SetAlpha(1)
 	end
 
-	if self.widgets then
-		v.widgetAlpha(1)
+	if self.widgets and self:IsEnabled() then
+		v.widgetAlpha(1, #self.widgets)
 	end
 
 	if self:IsEnabled() then self.highlight:Show() end
@@ -466,14 +495,14 @@ end
 
 
 local function DropDownMenuButton_OnEnter(self)
-	if self.remove then
+	if self.remove and self:IsEnabled() then
 		v.removeButton:SetParent(self)
 		v.removeButton:SetPoint("RIGHT", self.removePosition, 0)
 		v.removeButton:Show()
 		self.removeFrame = true
 	end
 
-	if self.order then
+	if self.order and self:IsEnabled() then
 		v.arrowDownButton:SetParent(self)
 		v.arrowDownButton:SetPoint("RIGHT", self.orderPosition, 0)
 		v.arrowDownButton:Show()
@@ -482,7 +511,7 @@ local function DropDownMenuButton_OnEnter(self)
 		v.arrowUpButton:Show()
 	end
 
-	if self.widgets then
+	if self.widgets and self:IsEnabled() then
 		v.widgetInit(self)
 	end
 
@@ -524,7 +553,7 @@ local function DropDownMenuButton_OnLeave(self)
 	end
 
 	if self.widgets then
-		v.widgetAlpha(0)
+		v.widgetAlpha(0, #self.widgets)
 	end
 
 	if self.OnTooltipShow and (self:IsEnabled() or self.tooltipWhileDisabled) then
@@ -718,11 +747,13 @@ function v.widgetInit(parent)
 end
 
 
-function v.widgetAlpha(alpha)
+function v.widgetAlpha(alpha, num)
 	for i = 1, #v.widgetFrames do
 		local frame = v.widgetFrames[i]
-		if frame:IsShown() then
+		if i <= num then
 			frame:SetAlpha(alpha)
+		elseif frame:IsShown() then
+			frame:Hide()
 		else
 			break
 		end
@@ -812,6 +843,16 @@ local function ColorSwatch_OnLeave(self)
 end
 
 
+local function ColorSwatch_OnEnable(self)
+	self.swatchBg:SetColorTexture(HIGHLIGHT_FONT_COLOR:GetRGB())
+end
+
+
+local function ColorSwatch_OnDisable(self)
+	self.swatchBg:SetColorTexture(GRAY_FONT_COLOR:GetRGB())
+end
+
+
 local function CreateColorSwatchFrame()
 	local f = CreateFrame("BUTTON")
 	f:Hide()
@@ -820,6 +861,8 @@ local function CreateColorSwatchFrame()
 	f:SetScript("OnClick", ColorSwatch_OnClick)
 	f:SetScript("OnEnter", ColorSwatch_OnEnter)
 	f:SetScript("OnLeave", ColorSwatch_OnLeave)
+	f:SetScript("OnEnable", ColorSwatch_OnEnable)
+	f:SetScript("OnDisable", ColorSwatch_OnDisable)
 
 	f.swatchBg = f:CreateTexture(nil, "BACKGROUND", nil, -3)
 	f.swatchBg:SetSize(14, 14)
@@ -935,6 +978,7 @@ local function applyRightSideElements(btn, textPos, rightText, menuButtonHeight)
 			btn.colorSwatch:SetParent(btn)
 		end
 		btn.colorSwatch:SetPoint("RIGHT", textPos, 0)
+		btn.colorSwatch:SetEnabled(btn:IsEnabled())
 		textPos = textPos - 17
 		btn.colorSwatch.color:SetVertexColor(btn.r, btn.g, btn.b)
 		btn.colorSwatch:Show()
@@ -1399,7 +1443,6 @@ local function CreateDropDownMenuSearch()
 	f.searchBox.clearButton:SetScript("OnClick", DropDownMenuSearchBoxClear_OnClick)
 
 	f.scrollBox = CreateFrame("FRAME", nil, f, "WowScrollBoxList")
-	f.scrollBox:SetPoint("RIGHT", -20, 0)
 	f.scrollBox:RegisterCallback(f.scrollBox.Event.OnScroll, DropDownMenuScrollBox_OnScroll, f)
 
 	f.scrollBar = CreateFrame("EventFrame", nil, f, "MinimalScrollBar")
@@ -2664,27 +2707,12 @@ if oldminor < 28 then
 		f.scrollBar.Track:SetScript("OnEnter", nil)
 		f.scrollBar.Track.Thumb:SetScript("OnEnter", MinimalScrollBarThumbScriptsMixin.OnEnter)
 	end
-
-	for i = 1, #v.widgetFrames do
-		local widget = v.widgetFrames[i]
-		widget:SetScript("OnEnter", widget_OnEnter)
-		widget:SetScript("OnLeave", widget_OnLeave)
-	end
 end
 
 if oldminor < 36 then
-	for i in lib:IterateMenus() do
-		for j, btn in lib:IterateMenuButtons(i) do
-			btn:SetScript("OnEnter", DropDownMenuButton_OnEnter)
-			btn:SetScript("OnLeave", DropDownMenuButton_OnLeave)
-			btn:SetScript("OnHide", DropDownMenuButton_OnHide)
-		end
-	end
-
 	for i, f in lib:IterateSearchFrames() do
 		f.buttonsList = nil
 		f.hOffset = f.searchBox:IsShown() and 26 or 3
-		f.view:SetElementInitializer("BUTTON", DropDownMenuSearchButtonInit)
 		f.view:RegisterCallback(f.view.Event.OnAcquiredFrame, DropDownMenuSearchButton_OnAcquired, f)
 		f.searchBox:SetCollapsesLayout(true)
 		f.searchBox:SetScript("OnKeyDown", DropDownMenuSearchBox_OnKeyDown)
@@ -2699,6 +2727,24 @@ if oldminor < 36 then
 			CreateAnchor("BOTTOMRIGHT", 0, 0),
 		}
 		ScrollUtil.AddManagedScrollBarVisibilityBehavior(f.scrollBox, f.scrollBar, scrollBoxAnchorsWithBar, scrollBoxAnchorsWithoutBar)
+	end
+end
+
+
+if oldminor < 38 then
+	for i, menu in lib:IterateMenus() do
+		menu.reset = Menu_Reset
+		menu.btnPoint = Menu_BtnPoint
+		for j, btn in lib:IterateMenuButtons(i) do
+			btn:SetScript("OnEnter", DropDownMenuButton_OnEnter)
+			btn:SetScript("OnLeave", DropDownMenuButton_OnLeave)
+			btn:SetScript("OnHide", DropDownMenuButton_OnHide)
+		end
+	end
+
+	for i, f in lib:IterateSearchFrames() do
+		for k, v in next, DropDownMenuSearchMixin do f[k] = v end
+		f.view:SetElementInitializer("BUTTON", DropDownMenuSearchButtonInit)
 
 		for j, btn in lib:IterateSearchFrameButtons(i) do
 			btn:SetScript("OnEnter", DropDownMenuButton_OnEnter)
@@ -2706,15 +2752,20 @@ if oldminor < 36 then
 			btn:SetScript("OnHide", DropDownMenuButton_OnHide)
 		end
 	end
-end
 
-if oldminor < 37 then
-	for i, menu in lib:IterateMenus() do
-		menu.reset = Menu_Reset
-		menu.btnPoint = Menu_BtnPoint
+	for i = 1, #v.widgetFrames do
+		local widget = v.widgetFrames[i]
+		widget:SetScript("OnEnter", widget_OnEnter)
+		widget:SetScript("OnLeave", widget_OnLeave)
 	end
 
-	for i, f in lib:IterateSearchFrames() do
-		for k, v in next, DropDownMenuSearchMixin do f[k] = v end
+	for i = 1, #v.colorSwatchFrames do
+		local f = v.colorSwatchFrames[i]
+		f:SetScript("OnEnable", ColorSwatch_OnEnable)
+		f:SetScript("OnDisable", ColorSwatch_OnDisable)
 	end
+
+	v.removeButton:SetScript("OnEnter", widget_OnEnter)
+	v.arrowDownButton:SetScript("OnEnter", widget_OnEnter)
+	v.arrowUpButton:SetScript("OnEnter", widget_OnEnter)
 end
