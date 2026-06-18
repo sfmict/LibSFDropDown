@@ -2,7 +2,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 38
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 39
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -1848,7 +1848,12 @@ function DropDownButtonMixin:ddRefresh(level, anchorFrame)
 		if not btn:IsShown() then break end
 
 		if type(btn.disabled) == "function" then
-			btn:SetEnabled(not btn:disabled(btn.arg1, btn.arg2))
+			local enabled = not btn:disabled(btn.arg1, btn.arg2)
+			btn:SetEnabled(enabled)
+
+			if btn.hasColorSwatch and btn.colorSwatch then
+				btn.colorSwatch:SetEnabled(enabled)
+			end
 		end
 
 		if type(btn.text) == "function" then
