@@ -2,7 +2,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 39
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 40
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -1654,6 +1654,7 @@ function DropDownButtonMixin:ddInitialize(level, value, initFunction)
 	if level == 1 and value == nil then
 		value = self.ddMenuValue
 	end
+	menu.value = value
 	self:ddInitializeFunc(level, value)
 
 	for i = 1, menu.numButtons do
@@ -1758,6 +1759,7 @@ function DropDownButtonMixin:ddToggle(level, value, anchorFrame, point, rPoint, 
 		v.DROPDOWNBUTTON = self
 		if value == nil then value = self.ddMenuValue end
 	end
+	menu.value = value
 	self:ddInitializeFunc(level, value)
 
 	menu.width = math.max(menu.width, self.ddMinMenuWidth or v.dropDownMenuButtonHeight)
@@ -1888,6 +1890,53 @@ function DropDownButtonMixin:ddRefresh(level, anchorFrame)
 
 	local f = v[menu.scrollChild.id + 1]
 	if f and f.highlight then f.highlight:Show() end
+end
+
+
+function DropDownButtonMixin:ddReopenMenu(level, value)
+	if self == v.DROPDOWNBUTTON then
+		local menu = lib:GetMenu(level)
+
+		if menu and menu:IsShown() then
+			local point, rFrame, rPoint, x, y = menu:GetPoint()
+			local f = v[level]
+			self:ddCloseMenus(level)
+			self:ddToggle(level, value or menu.value, rFrame, point, rPoint, x, y)
+
+			if f and f.highlight then
+				v[level] = f
+				f.highlight:Show()
+			end
+		end
+	end
+end
+
+
+-- This function isn't recomend for menus with search frames
+function DropDownButtonMixin:ddReopenAllMenus(minLevel, maxLevel)
+	if self ~= v.DROPDOWNBUTTON then return end
+	local params = {}
+
+	for i = (minLevel or 1), (maxLevel or #dropDownMenusList) do
+		local menu = lib:GetMenu(i)
+		if menu and menu:IsShown() then
+			params[i] = {v[i], menu:GetPoint()}
+		else
+			break
+		end
+	end
+
+	self:ddCloseMenus()
+
+	for i, p in ipairs(params) do
+		self:ddToggle(i, lib:GetMenu(i).value, p[3], p[2], p[4], p[5], p[6])
+
+		local f = p[1]
+		if f and f.highlight then
+			v[i] = f
+			f.highlight:Show()
+		end
+	end
 end
 
 
