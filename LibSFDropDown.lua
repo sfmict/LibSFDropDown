@@ -2,7 +2,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 41
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 42
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -1850,7 +1850,8 @@ function DropDownButtonMixin:ddToggle(level, value, anchorFrame, point, rPoint, 
 	if level == 1 then
 		if not point then
 			point, rPoint = "TOPLEFT", "BOTTOMLEFT"
-			local isUp, isChanged = self:ddGetAutoMenuDirection(yOffset)
+			-- DropDownButtonMixin for older versions
+			local isUp, isChanged = DropDownButtonMixin.ddGetAutoMenuDirection(self, yOffset)
 			if isUp then point, rPoint = rPoint, point end
 			if isChanged then yOffset = yOffset and -yOffset end
 		end
