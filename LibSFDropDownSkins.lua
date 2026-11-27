@@ -1,5 +1,5 @@
 local lsfdd = LibStub("LibSFDropDown-1.5")
-local cur_ver, ver = lsfdd._sv, 7
+local cur_ver, ver = lsfdd._sv, 8
 if cur_ver and cur_ver >= ver then return end
 lsfdd._sv = ver
 local pairs, pcall = pairs, pcall
@@ -53,7 +53,7 @@ local skins = {
 			if btn.isSkinned then return end
 			btn.Background:SetTexture()
 			if not btn.backdrop then
-				btn:CreateBackdrop(template)
+				btn:CreateBackdrop()
 				btn:SetFrameLevel(btn:GetFrameLevel() + 2)
 			end
 			btn.backdrop:Point("TOPLEFT", 0, -2)
@@ -182,8 +182,9 @@ C_Timer.After(0, function()
 			local status, err = pcall(func, name)
 			if not status then
 				lsfdd:SetDefaultStyle("backdrop")
-				lsfdd:SetMenuStyle("menuBackdrop")
+				lsfdd:SetMenuStyle("modernMenu")
 				lsfdd.CreateButton = nil
+				lsfdd.CreateModernButton = nil
 				lsfdd.CreateStretchButton = nil
 			end
 			break

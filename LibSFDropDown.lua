@@ -2,7 +2,7 @@
 -----------------------------------------------------------
 -- LibSFDropDown - DropDown menu for non-Blizzard addons --
 -----------------------------------------------------------
-local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 43
+local MAJOR_VERSION, MINOR_VERSION = "LibSFDropDown-1.5", 44
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 oldminor = oldminor or 0
@@ -69,7 +69,7 @@ v.emptyStr = CATALOG_SHOP_NO_SEARCH_RESULTS or EMPTY or "Empty"
 List of button attributes (examples: https://github.com/sfmict/LibSFDropDown/wiki/Examples)
 ====================================================================================================
 info.text = [string, function(self, arg1, arg2)] -- The text of the button or function that returns the text
-info.rightText = [string, function(self, arg1, arg2)] -- The text on the right side of the button or function that returns the text
+info.rightText = [string, function(self, arg1, arg2)] -- The text on the right side of the button or function that returns the text (must return a string, "" for no text)
 info.value = [anything] -- The value that is set to button.value
 info.func = [function(self, arg1, arg2, checked)] -- The function that is called when you click the button
 info.checked = [nil, true, 2, function(self, arg1, arg2)] -- Check the button if true or function returns true (2 for square)
@@ -91,7 +91,7 @@ info.iconInfo = [nil, table] -- A table that looks like {
 	tCoordBottom = [0.0 - 1.0], -- bottom for SetTexCoord func
 	tSizeX = [number], -- texture width
 	tSizeY = [number], -- texture height
-	tWrap = [nil, string]. -- horizontal wrapping type from SetTexture function
+	tWrap = [nil, string], -- horizontal wrapping type from SetTexture function
 	r = [0.0 - 1.0], -- r for SetVertexColor func
 	g = [0.0 - 1.0], -- g for SetVertexColor func
 	b = [0.0 - 1.0], -- b for SetVertexColor func
@@ -107,14 +107,14 @@ info.g = [0.0 - 1.0] -- Green color value of the color swatch
 info.b = [0.0 - 1.0] -- Blue color value of the color swatch
 info.swatchFunc = [function] -- Function called by the color picker on color change
 info.hasOpacity = [nil, true] -- Show the opacity slider on the colorpicker frame
-info.opacity = [0.0 - 1.0] -- Percentatge of the opacity, 1.0 is fully shown, 0 is transparent
+info.opacity = [0.0 - 1.0] -- Percentage of the opacity, 1.0 is fully shown, 0 is transparent
 info.opacityFunc = [function] -- Function called by the opacity slider when you change its value
 info.cancelFunc = [function(previousValues)] -- Function called by the colorpicker when you click the cancel button (it takes the previous values as its argument)
 info.justifyH = [nil, "CENTER", "RIGHT"] -- Justify button text
 info.fontObject = [fontObject] -- The font object replacement for Normal and Highlight
-info.disabledFontObject = [fontObject] = The font object replacement for info.disabled
+info.disabledFontObject = [fontObject] -- The font object replacement for info.disabled
 info.rightFontObject = [fontObject] -- The font object replacement for info.rightText
-info.font = [font] -- The font replacement for Normal and HighLight
+info.font = [font] -- The font replacement for Normal and Highlight
 info.disabledFont = [font] -- The font replacement for info.disabled
 info.rightFont = [font] -- The font replacement for info.rightText
 info.OnEnter = [function(self, arg1, arg2)] -- Handler OnEnter
@@ -365,7 +365,6 @@ local function Menu_Reset(menu)
 	menu.width = 0
 	menu.height = 0
 	menu.numButtons = 0
-	menu.cursorOffset = nil
 	menu.lastFrame = nil
 	menu:ClearAllPoints()
 	wipe(menu.searchFrames)
@@ -441,7 +440,7 @@ local function DropDownMenuButton_OnClick(self)
 end
 
 
-local function DropDonwMenuButton_Delayed(self, elapsed)
+local function DropDownMenuButton_Delayed(self, elapsed)
 	self.delay = self.delay - elapsed
 	if self.delay > 0 then return end
 
@@ -476,7 +475,7 @@ local function DropDownMenuButton_OnEnterInit(self)
 	else
 		v.delayedFrame = nil
 	end
-	v.frameDummy:SetScript("OnUpdate", DropDonwMenuButton_Delayed)
+	v.frameDummy:SetScript("OnUpdate", DropDownMenuButton_Delayed)
 
 	if self.remove and self:IsEnabled() then
 		v.removeButton:SetAlpha(1)
@@ -678,7 +677,7 @@ local function widget_OnLeave(self)
 	end
 
 	if self.OnLeave then
-		self.OnLeave(parent.arg1, parent.arg2)
+		self.OnLeave(parent, parent.arg1, parent.arg2)
 	end
 
 	parent:GetScript("OnLeave")(parent)
@@ -788,7 +787,7 @@ local function ArrowButton_OnClick(self)
 	PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
 	local parent = self:GetParent()
 	parent:order(self.delta, parent.arg1, parent.arg2)
-	v.DROPDOWNBUTTON:ddRefresh(parent:GetParent().id, v.DROPDOWNBUTTON.anchorFrame)
+	v.DROPDOWNBUTTON:ddRefresh(parent:GetParent().id)
 end
 
 
@@ -1186,7 +1185,7 @@ function DropDownMenuSearchMixin:init(menu, info)
 	btn.font = nil
 	v.setButtonFont(btn)
 	btn:SetText(v.emptyStr)
-	self.width = math.max(self.width, btn:GetWidth() + 50)
+	self.width = math.max(self.width, btn.NormalText:GetWidth() + 30)
 
 	self:SetHeight(height)
 	self.searchBox:SetText("")
@@ -1666,6 +1665,10 @@ function DropDownButtonMixin:ddInitialize(level, value, initFunction)
 			btn.colorSwatch:Hide()
 			btn.colorSwatch = nil
 		end
+
+		if btn.rightString and btn.rightString:GetParent() == btn then
+			v.fontStringRightPool:Release(btn.rightString)
+		end
 	end
 
 	for i = 1, #menu.searchFrames do
@@ -1717,7 +1720,7 @@ function DropDownButtonMixin:ddIsOpenMenuUp()
 end
 
 
--- Allows the menu to automatically open in the opposite direction if there is not enough space and AnchorFrame ~= "cursor"
+-- Allows the menu to automatically open in the opposite direction if there is not enough space and anchorFrame ~= "cursor"
 function DropDownButtonMixin:ddSetAutoMenuDirection(enabled)
 	self.ddAutoMenuDirection = enabled and true or nil
 end
@@ -1818,6 +1821,7 @@ function DropDownButtonMixin:ddToggle(level, value, anchorFrame, point, rPoint, 
 		rPoint = point
 	end
 
+	local hasYOffset = yOffset ~= nil
 	xOffset = xOffset or 0
 	yOffset = yOffset or 0
 
@@ -1848,7 +1852,7 @@ function DropDownButtonMixin:ddToggle(level, value, anchorFrame, point, rPoint, 
 			-- DropDownButtonMixin for older versions
 			local isUp, isChanged = DropDownButtonMixin.ddGetAutoMenuDirection(self, yOffset)
 			if isUp then point, rPoint = rPoint, point end
-			if isChanged then yOffset = yOffset and -yOffset end
+			if isChanged then yOffset = -yOffset end
 		end
 		menu:SetPoint(point, anchorFrame, rPoint or point, xOffset, yOffset)
 	else
@@ -1862,7 +1866,10 @@ function DropDownButtonMixin:ddToggle(level, value, anchorFrame, point, rPoint, 
 		if GetScreenWidth() - anchorFrame:GetRight() - 2 < menu.width then
 			point, rPoint = rPoint, point
 		end
-		menu:SetPoint(point, anchorFrame, rPoint or point, xOffset, yOffset or anchorFrame.hasArrowUp and -15 or 15)
+		if not (hasYOffset or isCursor) then
+			yOffset = anchorFrame.hasArrowUp and -15 or 15
+		end
+		menu:SetPoint(point, anchorFrame, rPoint or point, xOffset, yOffset)
 	end
 
 	-- fix scroll thumb disappear
@@ -1940,12 +1947,23 @@ function DropDownButtonMixin:ddRefresh(level, anchorFrame)
 end
 
 
+-- ddToggle swaps the points of a submenu if there isn't enough space on the right,
+-- swap them back so that they are not swapped twice when reopening
+local function GetReopenMenuPoint(level, menu)
+	local point, rFrame, rPoint, x, y = menu:GetPoint()
+	if level > 1 and rFrame and GetScreenWidth() - rFrame:GetRight() - 2 < menu.width then
+		point, rPoint = rPoint, point
+	end
+	return point, rFrame, rPoint, x, y
+end
+
+
 function DropDownButtonMixin:ddReopenMenu(level, value)
 	if self == v.DROPDOWNBUTTON then
 		local menu = lib:GetMenu(level)
 
 		if menu and menu:IsShown() then
-			local point, rFrame, rPoint, x, y = menu:GetPoint()
+			local point, rFrame, rPoint, x, y = GetReopenMenuPoint(level or 1, menu)
 			local f = v[level]
 			self:ddCloseMenus(level)
 			self:ddToggle(level, value or menu.value, rFrame, point, rPoint, x, y)
@@ -1959,24 +1977,28 @@ function DropDownButtonMixin:ddReopenMenu(level, value)
 end
 
 
--- This function isn't recomend for menus with search frames
+-- This function isn't recommended for menus with search frames
 function DropDownButtonMixin:ddReopenAllMenus(minLevel, maxLevel)
 	if self ~= v.DROPDOWNBUTTON then return end
-	local params = {}
+	minLevel = minLevel or 1
+	local params, lastLevel = {}, minLevel - 1
 
-	for i = (minLevel or 1), (maxLevel or #dropDownMenusList) do
+	for i = minLevel, (maxLevel or #dropDownMenusList) do
 		local menu = lib:GetMenu(i)
 		if menu and menu:IsShown() then
-			params[i] = {v[i], menu:GetPoint()}
+			params[i] = {v[i], menu.value, GetReopenMenuPoint(i, menu)}
+			lastLevel = i
 		else
 			break
 		end
 	end
 
-	self:ddCloseMenus()
+	if lastLevel < minLevel then return end
+	self:ddCloseMenus(minLevel)
 
-	for i, p in ipairs(params) do
-		self:ddToggle(i, lib:GetMenu(i).value, p[3], p[2], p[4], p[5], p[6])
+	for i = minLevel, lastLevel do
+		local p = params[i]
+		self:ddToggle(i, p[2], p[4], p[3], p[5], p[6], p[7])
 
 		local f = p[1]
 		if f and f.highlight then
@@ -2255,7 +2277,7 @@ function libMethods:IterateMenuButtons(level)
 	if menu then
 		return ipairs(menu.buttonsList)
 	else
-		error("The menu with a level "..level.." dosn't exist.")
+		error("The menu with a level "..level.." doesn't exist.")
 	end
 end
 
@@ -2270,7 +2292,7 @@ function libMethods:IterateSearchFrameButtons(num)
 	if searchFrame then
 		return ipairs({searchFrame.scrollBox:GetScrollTarget():GetChildren()})
 	else
-		error("SearchFrame number "..num.." dosn't exist.")
+		error("SearchFrame number "..num.." doesn't exist.")
 	end
 end
 
@@ -2306,7 +2328,7 @@ function libMethods:SetDefaultStyle(name)
 	if menuStyles[name] then
 		v.defaultStyle = name
 	else
-		error("The style named \""..name.."\" dosn't exist.")
+		error("The style named \""..name.."\" doesn't exist.")
 	end
 end
 
@@ -2315,7 +2337,7 @@ function libMethods:SetMenuStyle(name)
 	if menuStyles[name] then
 		v.menuStyle = name
 	else
-		error("The style named \""..name.."\" dosn't exist.")
+		error("The style named \""..name.."\" doesn't exist.")
 	end
 end
 
@@ -2865,7 +2887,6 @@ end
 
 if oldminor < 43 then
 	for i, f in lib:IterateSearchFrames() do
-		for k, v in next, DropDownMenuSearchMixin do f[k] = v end
 		f.view:SetElementInitializer("BUTTON", DropDownMenuSearchButtonInit)
 
 		for j, btn in lib:IterateSearchFrameButtons(i) do
@@ -2874,4 +2895,19 @@ if oldminor < 43 then
 			btn:SetScript("OnHide", DropDownMenuButton_OnHide)
 		end
 	end
+end
+
+
+if oldminor < 44 then
+	for i, f in lib:IterateSearchFrames() do
+		for k, v in next, DropDownMenuSearchMixin do f[k] = v end
+	end
+
+	for i = 1, #v.widgetFrames do
+		v.widgetFrames[i]:SetScript("OnLeave", widget_OnLeave)
+	end
+
+	v.removeButton:SetScript("OnLeave", widget_OnLeave)
+	v.arrowDownButton:SetScript("OnLeave", widget_OnLeave)
+	v.arrowUpButton:SetScript("OnLeave", widget_OnLeave)
 end
